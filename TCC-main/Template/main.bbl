@@ -1,0 +1,54 @@
+\begin{thebibliography}{7}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Ahmad et~al.(2023)Ahmad, Alsmadi, Alhamdani, and
+  Tawalbeh]{ahmad2023zero}
+Rasheed Ahmad, Izzat Alsmadi, Wasim Alhamdani, and Lo’ai Tawalbeh.
+\newblock Zero-day attack detection: a systematic literature review.
+\newblock \emph{Artificial Intelligence Review}, 56\penalty0 (10):\penalty0
+  10733--10811, 2023.
+
+\bibitem[Alaryani et~al.(2024)Alaryani, Alremeithi, Al~Ali, and
+  Ikuesan]{alaryani2024penthack}
+Meera Alaryani, Shamsa Alremeithi, Fatima Al~Ali, and Richard Ikuesan.
+\newblock Penthack: Ai-enabled penetration testing platform for knowledge
+  development.
+\newblock In \emph{European Conference on Cyber Warfare and Security},
+  volume~23, pages 27--36, 2024.
+
+\bibitem[Brooks(2021)]{brooks2021more}
+Chuck Brooks.
+\newblock More alarming cybersecurity stats for 2021!
+\newblock \emph{Forbes, October}, 24, 2021.
+
+\bibitem[Cisco(2020)]{cisco2020cisco}
+U~Cisco.
+\newblock Cisco annual internet report (2018--2023) white paper.
+\newblock \emph{Cisco: San Jose, CA, USA}, 10\penalty0 (1):\penalty0 1--35,
+  2020.
+
+\bibitem[Fernandes(2018)]{fernandes2018segurancca}
+N{\'e}lia O~Campo Fernandes.
+\newblock Seguran{\c{c}}a da informa{\c{c}}{\~a}o.
+\newblock 2018.
+
+\bibitem[Goupil et~al.(2022)Goupil, Laskov, Pekaric, Felderer, D{\"u}rr, and
+  Thiesse]{goupil2022towards}
+Francois Goupil, Pavel Laskov, Irdin Pekaric, Michael Felderer, Alexander
+  D{\"u}rr, and Frederic Thiesse.
+\newblock Towards understanding the skill gap in cybersecurity.
+\newblock In \emph{Proceedings of the 27th ACM Conference on on Innovation and
+  Technology in Computer Science Education Vol. 1}, pages 477--483, 2022.
+
+\bibitem[Nizetic et~al.(2020)Nizetic, Soli, Patrono,
+  et~al.]{nizetic2020internet}
+Sandro Nizetic, Petar Soli, Luigi Patrono, et~al.
+\newblock Internet of things (iot): Opportunities, issues and challenges
+  towards a smart and sustainable future.
+\newblock \emph{Journal of cleaner production}, 274:\penalty0 1--32, 2020.
+
+\end{thebibliography}
