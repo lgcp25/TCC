@@ -1,4 +1,4 @@
-\begin{thebibliography}{10}
+\begin{thebibliography}{9}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -24,12 +24,6 @@ Meera Alaryani, Shamsa Alremeithi, Fatima Al~Ali, and Richard Ikuesan.
 Chuck Brooks.
 \newblock More alarming cybersecurity stats for 2021!
 \newblock \emph{Forbes, October}, 24, 2021.
-
-\bibitem[Cisco(2020)]{cisco2020cisco}
-U~Cisco.
-\newblock Cisco annual internet report (2018--2023) white paper.
-\newblock \emph{Cisco: San Jose, CA, USA}, 10\penalty0 (1):\penalty0 1--35,
-  2020.
 
 \bibitem[Fernandes(2018)]{fernandes2018segurancca}
 N{\'e}lia O~Campo Fernandes.
