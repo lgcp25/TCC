@@ -8,9 +8,9 @@
 \contentsline {section}{\numberline {1.5}Justificativa}{3}{section.1.5}%
 \contentsline {section}{\numberline {1.6}Questões de Pesquisa para o Estudo de Caso}{4}{section.1.6}%
 \contentsline {section}{\numberline {1.7}Delimitação do Estudo}{4}{section.1.7}%
-\contentsline {section}{\numberline {1.8}Estrutura do Estudo}{4}{section.1.8}%
-\contentsline {chapter}{\numberline {2}Fundamentação Teórica}{6}{chapter.2}%
-\contentsline {chapter}{\numberline {3}Revisão da Literatura / Trabalhos Relacionados}{7}{chapter.3}%
-\contentsline {chapter}{\numberline {4}Proposta}{8}{chapter.4}%
-\contentsline {chapter}{\numberline {5}Conclusão}{9}{chapter.5}%
-\contentsline {chapter}{Referências}{10}{chapter*.3}%
+\contentsline {section}{\numberline {1.8}Estrutura do Estudo}{5}{section.1.8}%
+\contentsline {chapter}{\numberline {2}Fundamentação Teórica}{7}{chapter.2}%
+\contentsline {chapter}{\numberline {3}Revisão da Literatura / Trabalhos Relacionados}{8}{chapter.3}%
+\contentsline {chapter}{\numberline {4}Proposta}{9}{chapter.4}%
+\contentsline {chapter}{\numberline {5}Conclusão}{10}{chapter.5}%
+\contentsline {chapter}{Referências}{11}{chapter*.3}%

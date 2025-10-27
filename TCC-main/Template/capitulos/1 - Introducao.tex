@@ -13,6 +13,7 @@
     cyberataques são elaborados e despendidos diariamente[3]. Em 2021, dados preocupantes mostraram uma alta incidência
     de ataques, 1 a cada 3 segundos, 1200 por hora. Além disso, as ofensasivas têm sido cada vez mais sofisticadas,
     se utilizando de ataques de dia zero[4].
+
 \section{Problema investigado}
     Em 2022, cerca de 3 milhões de vagas para cargos de segurança da informação ficaram em abertas, isso demonstra um
     inquietante indice de como está sendo o desenvolvimento dos profissionais da área. A área segue com elevados indices 
@@ -26,9 +27,11 @@
     do uso intensivo da memória a fim de decorar os comandos de CLI necessários para o uso de praticamente todas as ferramentas
     para execução de testes de vulnerabilidades,enumeração e testes de penetração, o que torna a curva de aprendizagem signifiativamente ingreme
     para iniciantes[6].
+
 \section{Objetivos}
     Este trabalho tem como objetivo desenvolver e analisar uma ferramenta desktop GUI para apoio a testes de penetração, visando auxiliar o 
     desenvolvimento acadêmico-profissional do estudante da área de TI. A fim de alcançar tal objetivo propõe-se:
+
     \begin{itemize}
         \item Pesquisar as principais técnicas e metodologias de testes de penetração utilizadas no mercado;
         \item Analisar as funcionalidades das ferramentas Nmap, Nuclei, Nikto, Caido, Gobuster, Dirsearch, Sqlmap, Commix, Netcat, Metasploit;
@@ -46,6 +49,7 @@
     fluxos reprodutíveis tornam o processo mais custoso e propenso a erros[6]. Diante disso, este projeto propoe desenvolver o PentestAssist:
     uma aplicação desktop em Python com interface pyQT6 que orquestre ferramentas, normalize suas saídas em um
     formato único, gere relatórios técnicos e ofereça fluxos guiados para quem está começando na área.
+    
 \section{Questões de Pesquisa para o Estudo de Caso}
     A fim de orientar o desenvolvimento da farrementa as seguintes questões foram levantadas:
     \begin{enumerate}
@@ -64,7 +68,23 @@
     web, questões reacionadas a segurança de equipamentos físicos e governaça de TI. 
 
 \section{Estrutura do Estudo}
+    Este trabalho está organizado em cinco capítulos, além das referências bibliográficas e dos apêndices.
 
+    O Capítulo 1 apresenta a introdução ao tema, abordando a contextualização, o problema investigado, a motivação, os objetivos,
+    a justificativa, as questões de pesquisa e a delimitação do estudo.
+
+    O Capítulo 2 reúne a fundamentação teórico, contemplando os principais conceitos relacionados à segurança da informação,
+    testes de penetração, virtualização de ferramentas, integração de ambientes por meio do Docker e desenvolvimento de interfaces
+    gráficas (GUI) em aplicações Python, uso de LLM para auxiliar o usuário, além da análise de trabalhos correlatos.
+
+    O Capítulo 3 descreve a metodologia empregada para o desenvolvimento do PentestAssist, detalhando as etapas de pesquisa,
+    as tecnologias utilizadas (Python, PyQt6 e Docker) e o processo de integração das ferramentas de pentest.
+
+    O Capítulo 4 apresenta o desenvolvimento da aplicação e os resultados obtidos, destacando a arquitetura do sistema,
+    a interface desenvolvida, os testes realizados e a análise de desempenho em ambiente controlado.
+
+    Por fim, o Capítulo 5 traz as conclusões e considerações finais, evidenciando as contribuições do estudo,
+    as limitações observadas e as perspectivas de aprimoramento e continuidade do projeto.
 
 \begin{itemize}
     \item Primeiro item
