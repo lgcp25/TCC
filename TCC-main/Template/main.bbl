@@ -1,4 +1,4 @@
-\begin{thebibliography}{7}
+\begin{thebibliography}{10}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -36,6 +36,11 @@ N{\'e}lia O~Campo Fernandes.
 \newblock Seguran{\c{c}}a da informa{\c{c}}{\~a}o.
 \newblock 2018.
 
+\bibitem[Fontes(2017)]{fontes2017segurancca}
+Edison Luiz~Gon{\c{c}}alves Fontes.
+\newblock Seguran{\c{c}}a da informa{\c{c}}{\~a}o.
+\newblock \emph{Saraiva Educa{\c{c}}{\~a}o SA}, page~2, 2017.
+
 \bibitem[Goupil et~al.(2022)Goupil, Laskov, Pekaric, Felderer, D{\"u}rr, and
   Thiesse]{goupil2022towards}
 Francois Goupil, Pavel Laskov, Irdin Pekaric, Michael Felderer, Alexander
@@ -43,6 +48,18 @@ Francois Goupil, Pavel Laskov, Irdin Pekaric, Michael Felderer, Alexander
 \newblock Towards understanding the skill gap in cybersecurity.
 \newblock In \emph{Proceedings of the 27th ACM Conference on on Innovation and
   Technology in Computer Science Education Vol. 1}, pages 477--483, 2022.
+
+\bibitem[{ISO/IEC 27001:2013}(2013)]{iso27001_2013}
+{ISO/IEC 27001:2013}.
+\newblock {ISO/IEC 27001:2013 – Information Technology – Security
+  Techniques – Information Security Management Systems – Requirements}.
+\newblock ISO/IEC Standard, 2013.
+\newblock Disponível em: \url{https://www.iso.org/standard/54534.html}.
+
+\bibitem[Moreno(2019)]{moreno2019introduccao}
+Daniel Moreno.
+\newblock \emph{Introdu{\c{c}}{\~a}o ao Pentest}.
+\newblock Novatec Editora, 2019.
 
 \bibitem[Nizetic et~al.(2020)Nizetic, Soli, Patrono,
   et~al.]{nizetic2020internet}

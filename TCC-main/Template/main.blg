@@ -7,45 +7,45 @@ The style file: plainnat.bst
 Database file #1: references.bib
 Warning--I didn't find a database entry for "8890660"
 Warning--empty journal in fernandes2018segurancca
-You've used 7 entries,
+You've used 10 entries,
             2773 wiz_defined-function locations,
-            637 strings with 6095 characters,
-and the built_in function-call counts, 3519 in all, are:
-= -- 309
-> -- 203
-< -- 6
-+ -- 70
-- -- 63
-* -- 280
-:= -- 537
-add.period$ -- 21
-call.type$ -- 7
-change.case$ -- 41
-chr.to.int$ -- 7
-cite$ -- 15
-duplicate$ -- 164
-empty$ -- 285
-format.name$ -- 70
-if$ -- 736
+            654 strings with 6579 characters,
+and the built_in function-call counts, 4457 in all, are:
+= -- 389
+> -- 233
+< -- 10
++ -- 82
+- -- 72
+* -- 326
+:= -- 685
+add.period$ -- 31
+call.type$ -- 10
+change.case$ -- 52
+chr.to.int$ -- 10
+cite$ -- 21
+duplicate$ -- 222
+empty$ -- 383
+format.name$ -- 82
+if$ -- 939
 int.to.chr$ -- 1
 int.to.str$ -- 1
-missing$ -- 7
-newline$ -- 43
-num.names$ -- 28
-pop$ -- 84
+missing$ -- 10
+newline$ -- 59
+num.names$ -- 40
+pop$ -- 118
 preamble$ -- 1
-purify$ -- 34
+purify$ -- 43
 quote$ -- 0
-skip$ -- 131
+skip$ -- 170
 stack$ -- 0
-substring$ -- 139
-swap$ -- 25
-text.length$ -- 3
+substring$ -- 147
+swap$ -- 31
+text.length$ -- 4
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 77
+type$ -- 105
 warning$ -- 1
-while$ -- 33
+while$ -- 43
 width$ -- 0
-write$ -- 97
+write$ -- 136
 (There were 2 warnings)

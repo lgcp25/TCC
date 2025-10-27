@@ -610,9 +610,12 @@ INPUT capitulos\5 - conclusao.tex
 INPUT .\main.bbl
 INPUT .\main.bbl
 INPUT main.bbl
+INPUT C:\Users\Luis Guilherme\AppData\Local\Programs\MiKTeX\fonts\tfm\jknappen\ec\ectt1200.tfm
 INPUT main.aux
 INPUT .\main.out
 INPUT .\main.out
+INPUT C:\Users\Luis Guilherme\AppData\Local\MiKTeX\fonts\pk\ljfour\jknappen\ec\dpi600\ectt1200.pk
+INPUT C:\Users\Luis Guilherme\AppData\Local\MiKTeX\fonts\pk\ljfour\jknappen\ec\dpi600\ectt1200.pk
 INPUT C:\Users\Luis Guilherme\AppData\Local\Programs\MiKTeX\fonts\type1\urw\times\utmb8a.pfb
 INPUT C:\Users\Luis Guilherme\AppData\Local\Programs\MiKTeX\fonts\type1\urw\times\utmb8a.pfb
 INPUT C:\Users\Luis Guilherme\AppData\Local\Programs\MiKTeX\fonts\type1\urw\times\utmr8a.pfb
