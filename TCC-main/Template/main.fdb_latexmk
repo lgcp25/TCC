@@ -1,13 +1,14 @@
 # Fdb version 4
-["bibtex main"] 1761607722.15478 "main.aux" "main.bbl" "main" 1761607730.85109 0
+["bibtex main"] 1765236876.44759 "main.aux" "main.bbl" "main" 1765236882.83641 0
   "./references.bib" 1761606816 2936 735dac314eb8421a4b86fc8d627173e5 ""
   "C:/Users/Luis Guilherme/AppData/Local/Programs/MiKTeX/bibtex/bst/natbib/plainnat.bst" 1284455456 26816 ffe5423d2019860bad9f54bc402fac15 ""
-  "main.aux" 1761607728 4355 6df9faa3abe7facf646d0576f2fdcee6 "pdflatex"
+  "main.aux" 1765236880 4456 d4b571e4c101caab11089a37c8d9f1b2 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1761607722.74523 "c:/Users/Luis Guilherme/Desktop/TCC/TCC-main/Template/main.tex" "main.pdf" "main" 1761607730.85238 0
+["pdflatex"] 1765236877.05791 "c:/Users/Luis Guilherme/Desktop/TCC/TCC-main/Template/main.tex" "main.pdf" "main" 1765236882.83775 0
+  "C:/Users/Luis" 1762105898 19043 708230f5bca5e931c1de493e13dd81db ""
   "C:/Users/Luis Guilherme/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1761496603 82507 a9eef8696c92627b87e9975edea03b2a ""
   "C:/Users/Luis Guilherme/AppData/Local/MiKTeX/fonts/pk/ljfour/jknappen/ec/dpi600/ectt1200.pk" 1761593886 24152 c10a723d50def8620f688ac360583bed ""
   "C:/Users/Luis Guilherme/AppData/Local/MiKTeX/miktex/data/le/pdftex/pdflatex.fmt" 1761496285 13326301 65395b9cc151eec2355bcb4550eee536 ""
@@ -250,9 +251,10 @@
   "C:/Users/Luis Guilherme/AppData/Local/Programs/MiKTeX/tex/latex/xcolor/xcolor.sty" 1729265222 55384 b454dec21c2d9f45ec0b793f0995b992 ""
   "C:/Users/Luis Guilherme/AppData/Local/Programs/MiKTeX/tex/latex/xfor/xfor.sty" 1233849756 2689 44855b72da58344b1c1d9b3087bce6ca ""
   "C:/Users/Luis Guilherme/AppData/Local/Programs/MiKTeX/tex/latex/xkeyval/xkeyval.sty" 1656236919 4937 4ce600ce9bd4ec84d0250eb6892fcf4f ""
-  "c:/Users/Luis Guilherme/Desktop/TCC/TCC-main/Template/main.tex" 1761607705 1327 47c01056e6109677bb2c1b24674178c9 ""
-  "capitulos/1 - Introducao.tex" 1761607606 6955 04a9970abb821d3095f1fd5558814242 ""
-  "capitulos/2 - Fundamentacao_teorica.tex" 1761593906 1350 09762cd984de27f1ab7d1a55505ca256 ""
+  "c:/Users/Luis" 1762105898 19043 708230f5bca5e931c1de493e13dd81db ""
+  "c:/Users/Luis Guilherme/Desktop/TCC/TCC-main/Template/main.tex" 1762385120 1322 0a6268da14a639ad6abfbed2a8b2f6d4 ""
+  "capitulos/1 - Introducao.tex" 1765236863 6959 e23ffb6b905b26a614506777ef664cba ""
+  "capitulos/2 - Fundamentacao_teorica.tex" 1765236863 1367 c56407ee5e0df7da86bb8313a349803b ""
   "capitulos/3 - Revisao.tex" 1761494843 77 c3670c60b99657a870b225a04d8dfedc ""
   "capitulos/4 - Proposta.tex" 1761494843 39 8f1025e389e42ce66a4b18e64f94cb1f ""
   "capitulos/5 - conclusao.tex" 1761494843 43 9da2a6fce8c6c8aaced6bcdaf4488237 ""
@@ -262,13 +264,13 @@
   "config/cores.tex" 1761494843 275 eb1df5f462296740550727e4ac2d4792 ""
   "config/estilos.tex" 1761494844 2350 b2b2ccb4be517d58cdf1be08bf3dc4ba ""
   "config/pacotes.tex" 1761592231 549 02ba47b144e9b95d76b3b4938e00f7f8 ""
-  "main.aux" 1761607728 4355 6df9faa3abe7facf646d0576f2fdcee6 "pdflatex"
-  "main.bbl" 1761607722 2750 33a591c83d65a83e0ff40c1842b05b3c "bibtex main"
-  "main.lof" 1761607728 143 e2c8f3d9ee9fb2c8d19c8f2ddc3e901f "pdflatex"
-  "main.lot" 1761607728 143 e2c8f3d9ee9fb2c8d19c8f2ddc3e901f "pdflatex"
-  "main.out" 1761607728 2250 4ef69eba1183748b9c61f81b47e568d7 "pdflatex"
-  "main.tex" 1761607705 1327 47c01056e6109677bb2c1b24674178c9 ""
-  "main.toc" 1761607728 1201 de285a12b5bd66015917efd58cfef9ca "pdflatex"
+  "main.aux" 1765236880 4456 d4b571e4c101caab11089a37c8d9f1b2 "pdflatex"
+  "main.bbl" 1765236876 2750 33a591c83d65a83e0ff40c1842b05b3c "bibtex main"
+  "main.lof" 1765236880 143 e2c8f3d9ee9fb2c8d19c8f2ddc3e901f "pdflatex"
+  "main.lot" 1765236880 143 e2c8f3d9ee9fb2c8d19c8f2ddc3e901f "pdflatex"
+  "main.out" 1765236880 2297 ee9e9861f46bbf8a33f4f57266cae4f3 "pdflatex"
+  "main.tex" 1762385120 1322 0a6268da14a639ad6abfbed2a8b2f6d4 ""
+  "main.toc" 1765236880 1261 0c27aa0eb69da402420387c3edcf0c6b "pdflatex"
   "pre-textuais/abstract.tex" 1761494844 65 75059ae0dd1dc89b713677d95333abac ""
   "pre-textuais/agradecimentos.tex" 1761494844 45 8f9a44c6615192281234bd592ff0eb16 ""
   "pre-textuais/dedicatoria.tex" 1761494844 51 9193911d2aa1d9be6e24c4df805467c1 ""
