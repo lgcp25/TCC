@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex main"] 1765839772.15947 "main.aux" "main.bbl" "main" 1765839780.09311 0
+["bibtex main"] 1765839772.15947 "main.aux" "main.bbl" "main" 1765841453.49124 0
   "./references.bib" 1765834809 3661 ff8e32b7e5ea6cbd632c6f06a920e326 ""
   "C:/Users/Luis Guilherme/AppData/Local/Programs/MiKTeX/bibtex/bst/natbib/plainnat.bst" 1284455456 26816 ffe5423d2019860bad9f54bc402fac15 ""
-  "main.aux" 1765839777 7219 93370b3b58b1c12c08d8f4c42bc17874 "pdflatex"
+  "main.aux" 1765841451 7219 93370b3b58b1c12c08d8f4c42bc17874 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1765839773.10421 "c:/Users/Luis Guilherme/Desktop/TCC/TCC-main/Template/main.tex" "main.pdf" "main" 1765839780.09403 0
+["pdflatex"] 1765841446.7011 "c:/Users/Luis Guilherme/Desktop/TCC/TCC-main/Template/main.tex" "main.pdf" "main" 1765841453.49222 0
   "C:/Users/Luis" 1762105898 19043 708230f5bca5e931c1de493e13dd81db ""
   "C:/Users/Luis Guilherme/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1761496603 82507 a9eef8696c92627b87e9975edea03b2a ""
   "C:/Users/Luis Guilherme/AppData/Local/MiKTeX/fonts/pk/ljfour/jknappen/ec/dpi600/ectt1200.pk" 1761593886 24152 c10a723d50def8620f688ac360583bed ""
@@ -253,7 +253,7 @@
   "C:/Users/Luis Guilherme/AppData/Local/Programs/MiKTeX/tex/latex/xkeyval/xkeyval.sty" 1656236919 4937 4ce600ce9bd4ec84d0250eb6892fcf4f ""
   "c:/Users/Luis" 1762105898 19043 708230f5bca5e931c1de493e13dd81db ""
   "c:/Users/Luis Guilherme/Desktop/TCC/TCC-main/Template/main.tex" 1762385120 1322 0a6268da14a639ad6abfbed2a8b2f6d4 ""
-  "capitulos/1 - Introducao.tex" 1765237298 6959 e23ffb6b905b26a614506777ef664cba ""
+  "capitulos/1 - Introducao.tex" 1765841445 6945 9d89ddc7dded1ead3be56fae1921af42 ""
   "capitulos/2 - Fundamentacao_teorica.tex" 1765839753 15851 3e309828f9fe878dd344525f81f3d785 ""
   "capitulos/3 - Revisao.tex" 1761494843 77 c3670c60b99657a870b225a04d8dfedc ""
   "capitulos/4 - Proposta.tex" 1761494843 39 8f1025e389e42ce66a4b18e64f94cb1f ""
@@ -264,13 +264,13 @@
   "config/cores.tex" 1761494843 275 eb1df5f462296740550727e4ac2d4792 ""
   "config/estilos.tex" 1761494844 2350 b2b2ccb4be517d58cdf1be08bf3dc4ba ""
   "config/pacotes.tex" 1761592231 549 02ba47b144e9b95d76b3b4938e00f7f8 ""
-  "main.aux" 1765839777 7219 93370b3b58b1c12c08d8f4c42bc17874 "pdflatex"
+  "main.aux" 1765841451 7219 93370b3b58b1c12c08d8f4c42bc17874 "pdflatex"
   "main.bbl" 1765839772 3746 d9815d0eeda72bd6461c24b0a25c7c13 "bibtex main"
-  "main.lof" 1765839777 143 e2c8f3d9ee9fb2c8d19c8f2ddc3e901f "pdflatex"
-  "main.lot" 1765839777 143 e2c8f3d9ee9fb2c8d19c8f2ddc3e901f "pdflatex"
-  "main.out" 1765839777 4364 749ec9344899ec63ff86c0273298c8bb "pdflatex"
+  "main.lof" 1765841451 143 e2c8f3d9ee9fb2c8d19c8f2ddc3e901f "pdflatex"
+  "main.lot" 1765841451 143 e2c8f3d9ee9fb2c8d19c8f2ddc3e901f "pdflatex"
+  "main.out" 1765841451 4364 749ec9344899ec63ff86c0273298c8bb "pdflatex"
   "main.tex" 1762385120 1322 0a6268da14a639ad6abfbed2a8b2f6d4 ""
-  "main.toc" 1765839777 2417 1be1b90ccf5ec27258760fc1e2394176 "pdflatex"
+  "main.toc" 1765841451 2417 1be1b90ccf5ec27258760fc1e2394176 "pdflatex"
   "pre-textuais/abstract.tex" 1761494844 65 75059ae0dd1dc89b713677d95333abac ""
   "pre-textuais/agradecimentos.tex" 1761494844 45 8f9a44c6615192281234bd592ff0eb16 ""
   "pre-textuais/dedicatoria.tex" 1761494844 51 9193911d2aa1d9be6e24c4df805467c1 ""
