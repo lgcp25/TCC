@@ -15,9 +15,200 @@
 
     Com o avanço da tecnologia e a dinamização da internet apenas a tríade - CID - deixou de ser 
     suficinte para garantir a segurança das informações. Portanto houve a necessidade de incluir outros 
-    três pilares: autencidade, responsabilidade e a confomidade legal \citep{iso27001_2013}
+    três pilares: autencidade, responsabilidade e a confomidade legal.A autenticidade refere-se à garantia
+    de que indivíduos e sistemas são realmente quem afirmam ser; a responsabilidade assegura rastreabilidade
+    das ações; e a conformidade legal assegura aderência a legislações como LGPD e normas internacionais
+    de segurança. \citep{iso27001_2013}
 
 
-    \section{}
+\section{Testes de Penetração (Pentest)}
+    Os testes de penetração consistem em técnicas sistemáticas de identificação, exploração
+    e validação de vulnerabilidades em sistemas computacionais. O pentest simula o comportamento 
+    de um atacante real, permitindo avaliar o estado de segurança de uma organização de forma prática\citep{moreno2019introduccao}.
+
+    Os testes podem ser classificados em:
+    \begin{itemize}
+        \item Caixa branca (white-box): o testador possui amplo conhecimento da infraestrutura;
+        \item Caixa cinza (gray-box): conhecimento parcial;
+        \item Caixa preta (black-box): sem conhecimento prévio do ambiente.
+    \end{itemize}
+
+    \subsubsection{Fases do Processo de Testes de Penetração}
+
+        Os testes de penetração são conduzidos de forma estruturada, seguindo fases bem definidas que permitem
+        a identificação, exploração e análise de vulnerabilidades de maneira sistemática. Metodologias consolidadas,
+        como o Penetration Testing Execution Standard (PTES), o NIST SP 800-115 e o OWASP Testing Guide, adotam abordagens
+        semelhantes, garantindo padronização e reprodutibilidade dos testes \citep{moreno2019introduccao}.
+
+        
+        
+
+        \subsubsection*{Reconhecimento e Coleta de Informações}
+
+        A fase de reconhecimento tem como objetivo coletar informações iniciais sobre o alvo do teste, como endereços IP,
+         serviços expostos, tecnologias utilizadas e possíveis vetores de ataque. Essa etapa fornece a base para as fases
+          subsequentes, direcionando as ações do testador e reduzindo incertezas no processo \citep{stallings2017network}.
+
+        \subsubsection*{Enumeração de Serviços e Vulnerabilidades}
+
+        Na fase de enumeração, aprofunda-se a análise dos serviços identificados, buscando versões de software, configurações
+         e vulnerabilidades conhecidas. Ferramentas automatizadas auxiliam na correlação entre serviços detectados e falhas já
+          documentadas, permitindo uma visão mais precisa da superfície de ataque \citep{moreno2019introduccao}.
+
+        \subsubsection*{Exploração}
+
+        A exploração consiste na tentativa controlada de explorar as vulnerabilidades identificadas, com o objetivo de 
+        comprovar sua existência e avaliar o impacto real sobre o sistema. Essa fase é conduzida de forma ética e autorizada,
+         respeitando o escopo previamente definido, sendo fundamental para diferenciar vulnerabilidades teóricas de falhas 
+         efetivamente exploráveis \citep{stallings2017network}.
+
+        \subsubsection*{Pós-exploração}
+
+        A fase de pós-exploração busca avaliar as consequências do acesso obtido, analisando possibilidades de escalonamento
+        de privilégios, movimentação lateral e acesso a informações sensíveis. Essa etapa permite mensurar os riscos reais
+        associados às vulnerabilidades exploradas, relacionando-os aos princípios de confidencialidade, integridade e disponibilidade \citep{moreno2019introduccao}.
+
+        \subsubsection*{Geração de Relatórios}
+
+        A etapa final consiste na documentação dos resultados obtidos durante o teste de penetração. O relatório deve apresentar
+        as vulnerabilidades identificadas, evidências técnicas, impactos potenciais e recomendações de mitigação. Essa fase é
+        essencial para comunicar os achados de forma clara e subsidiar a tomada de decisões por gestores e equipes técnicas \citep{moreno2019introduccao}.
+
+\section{Virtualização de Containers}
+    A virtualização é amplamente utilizada para possibilitar a execução isolada de aplicações em um mesmo
+    ambiente computacional. Tradicionalmente, esse isolamento é obtido por meio de máquinas virtuais, 
+    que incluem sistemas operacionais completos, resultando em maior consumo de recursos. Como alternativa,
+    a virtualização baseada em containers permite o compartilhamento do kernel do sistema operacional, 
+    oferecendo isolamento em nível de processos de forma mais leve e eficiente \citep{pahl2015containerization}.
+
+    O Docker consolidou-se como a principal plataforma de containers, possibilitando o empacotamento 
+    de aplicações juntamente com suas dependências, garantindo portabilidade e consistência entre diferentes
+    ambientes de execução \citep{merkel2014docker}.
+
+    No contexto da segurança da informação, o uso de containers favorece a execução isolada de ferramentas,
+    reduzindo conflitos de dependências e impactos no sistema hospedeiro. Quando corretamente configurados,
+    containers oferecem isolamento adequado para aplicações sensíveis, sendo apropriados para ambientes de testes
+    de segurança e laboratórios educacionais\citep{combe2016docker}.
+
+    No contexto deste trabalho, o Docker é utilizado para virtualizar Nmap, Nuclei, Nikto, Gobuster, Dirsearch,
+    Sqlmap, Commix, Caido, Netcat e Metasploit, garantindo execução uniforme e independente do sistema operacional
+    do usuário.
+
+\section{Ferramentas de Testes de Penetração}
+    Ferramentas de testes de penetração são empregadas para apoiar a identificação, exploração e análise de vulnerabilidades
+    em sistemas computacionais. Elas automatizam tarefas repetitivas, auxiliam na coleta de informações e permitem avaliar,
+    de forma prática, a postura de segurança de redes, sistemas e aplicações. O uso dessas ferramentas
+    é essencial para tornar o processo de pentest mais eficiente e sistemático, especialmente em ambientes complexos\citep{moreno2019introduccao}.
+
+    A seguir, apresentam-se as principais ferramentas consideradas neste trabalho, classificadas de acordo com seu papel no processo de testes de penetração.
+
+        \subsection{Nmap}
+
+            O Nmap (Network Mapper) é uma ferramenta amplamente utilizada para reconhecimento e enumeração de redes. Seu principal
+            objetivo é identificar hosts ativos, portas abertas, serviços em execução e possíveis sistemas operacionais. A fase de reconhecimento 
+            é fundamental para o sucesso do pentest, pois fornece informações iniciais que orientam as etapas
+            subsequentes de análise e exploração\citep{stallings2017network}.
+
+        \subsection{Nuclei}
+
+            O Nuclei é um framework de varredura baseado em templates, empregado para a detecção automatizada de vulnerabilidades conhecidas e más configurações.
+            Seu modelo baseado em assinaturas facilita a identificação rápida de falhas recorrentes em aplicações e serviços, contribuindo para a eficiência da
+            fase de enumeração de vulnerabilidades \citep{moreno2019introduccao}.
+            
+        \subsection{Nikto}
+
+            O Nikto é um scanner de servidores web utilizado para identificar configurações inseguras, arquivos sensíveis expostos e vulnerabilidades conhecidas.
+            Essa ferramenta auxilia na avaliação preliminar da segurança de aplicações web, permitindo detectar falhas 
+            comuns que podem comprometer o ambiente\citep{moreno2019introduccao}.
+        
+        \subsection{Gobuster e Dirsearch}
+
+            Ferramentas como Gobuster e Dirsearch são utilizadas para a enumeração de diretórios, arquivos e recursos ocultos em aplicações web.
+            Essas ferramentas exploram listas de palavras para identificar caminhos não diretamente acessíveis, auxiliando na descoberta de superfícies
+            de ataque adicionais. A enumeração detalhada de recursos expostos é uma etapa relevante na avaliação da 
+            segurança de aplicações\citep{stallings2017network}.
+
+        \subsection{SQLMap e Commix}
+        
+            O SQLMap é uma ferramenta destinada à identificação e exploração automatizada de vulnerabilidades de injeção SQL, enquanto o Commix
+            foca na detecção de falhas de injeção de comandos no sistema operacional. Ambas reduzem o esforço manual do testador ao automatizar
+            testes complexos, permitindo validar o impacto real das vulnerabilidades encontradas \citep{moreno2019introduccao}.
+
+        \subsection{Metasploit}
+
+            O Metasploit é uma plataforma abrangente para exploração de vulnerabilidades e realização de testes de pós-exploração.
+            Ele permite avaliar as consequências práticas das falhas identificadas, auxiliando na compreensão do impacto sobre a
+            confidencialidade, integridade e disponibilidade dos sistemas. Frameworks de exploração são 
+            fundamentais para validar a efetividade dos mecanismos de segurança existentes\citep{stallings2017network}.
+
+        \subsection{Netcat}
+
+            O Netcat é uma ferramenta de rede de propósito geral utilizada para estabelecer conexões TCP/UDP, realizar testes de 
+            conectividade e interagir com serviços de forma direta. Em atividades de pentest, é frequentemente empregado para validação
+            de portas e serviços, simulação de comunicação cliente-servidor e apoio a testes que exigem troca de dados em baixo nível.
+            Por permitir inspeção e interação com serviços de forma simples, o Netcat é útil em etapas de reconhecimento e validação de achados,
+            complementando scanners automatizados e auxiliando na compreensão prática do comportamento de rede \citep{stallings2017network,moreno2019introduccao}.
+        
+        \subsection{Caido}
+
+            O Caido é uma ferramenta utilizada como proxy de interceptação para análise de tráfego HTTP/HTTPS, permitindo a inspeção,
+            modificação e repetição de requisições entre cliente e servidor. Esse tipo de ferramenta é amplamente empregado em testes
+            de segurança de aplicações web, pois possibilita observar o funcionamento interno das comunicações e identificar falhas
+            relacionadas a autenticação, autorização e validação de entradas. A análise do tráfego de aplicações web
+            é fundamental para compreender o comportamento das requisições e detectar vulnerabilidades que não são facilmente identificadas
+            por scanners automatizados \citep{moreno2019introduccao}.
+            
+            Ao atuar como intermediário entre o navegador e a aplicação alvo, o Caido permite que o testador avalie de forma prática
+            o impacto de alterações em parâmetros e cabeçalhos HTTP, auxiliando na identificação de falhas lógicas e de configuração.
+            Dessa forma, a utilização de ferramentas de interceptação complementa o uso de scanners e frameworks de exploração, 
+            contribuindo para uma análise mais abrangente da segurança de aplicações web \citep{stallings2017network}.
+
+\section{Interface de Gráfica}
+
+    Interfaces gráficas (Graphical User Interface – GUI) contribuem para a usabilidade de ferramentas de segurança
+    da informação ao reduzir a dependência do uso direto de comandos em linha de comando, especialmente para usuários
+    iniciantes. Em um cenário de crescente complexidade dos ataques cibernéticos e das ferramentas de defesa, 
+    soluções que abstraem detalhes operacionais favorecem a compreensão dos processos de testes de segurança e 
+    reduzem erros de execução \citep{ahmad2023zero}.
+
+    Plataformas educacionais voltadas ao pentest tornam-se mais eficazes quando disponibilizam interfaces interativas,
+    permitindo maior foco no aprendizado prático dos conceitos de segurança. Nesse contexto, o uso de interfaces gráficas
+    auxilia na redução da barreira de entrada para estudantes e profissionais em formação\citep{alaryani2024penthack}.
+
+    No desenvolvimento em Python, o Tkinter apresenta-se como uma solução adequada por ser uma biblioteca nativa, simples
+    e multiplataforma. A adoção do ttkbootstrap complementa essa abordagem ao proporcionar uma aparência visual mais
+    moderna, mantendo a simplicidade da implementação. Assim, a interface gráfica adotada neste trabalho alinha-se aos
+    objetivos educacionais da ferramenta proposta.
+
+\section{Modelos de Linguagem de Grande Escala (LLMs) no Apoio ao Pentest}
+    Modelos de Linguagem de Grande Escala (Large Language Models – LLMs) têm sido progressivamente incorporados a sistemas de apoio
+    à segurança da informação, devido à sua capacidade de processar grandes volumes de dados textuais, interpretar resultados técnicos
+    e fornecer explicações em linguagem natural. Esses modelos mostram-se particularmente úteis em ambientes complexos, nos quais a
+    análise manual de informações pode ser custosa e sujeita a erros \citep{ahmad2023zero}.
+
+    No contexto dos testes de penetração, LLMs podem atuar como ferramentas de suporte à interpretação de resultados, auxílio na compreensão
+    de vulnerabilidades e orientação sobre boas práticas de segurança. O crescimento e a sofisticação dos
+    ataques cibernéticos exigem abordagens que combinem automação e inteligência para apoiar profissionais e estudantes na tomada
+    de decisão durante atividades de segurança \citep{ahmad2023zero}.
+
+    Plataformas educacionais que integram inteligência artificial ao processo de aprendizado prático tendem a apresentar ganhos significativos
+    na assimilação do conhecimento. O uso de IA em ambientes de pentest pode auxiliar usuários iniciantes
+    ao fornecer explicações contextualizadas, sugestões de ações e suporte cognitivo durante a execução das ferramentas, reduzindo a dependência
+    exclusiva de conhecimento prévio aprofundado \citep{alaryani2024penthack}.
+
+    É importante destacar que, no contexto deste trabalho, o uso de LLMs não se destina à automação completa de ataques, mas sim ao apoio educacional
+    e interpretativo, auxiliando o usuário na compreensão dos resultados obtidos e no correto uso das ferramentas de testes de penetração. Dessa forma,
+    a integração de LLMs contribui para tornar o processo de aprendizagem mais acessível, alinhando-se aos objetivos formativos da ferramenta proposta.
+
+
+
+
+
+    
+
+    
+
+    
+
 
     
