@@ -1,0 +1,39 @@
+services:
+
+  # ===================================================
+  #  SERVIÇO BASE (TODAS AS FERRAMENTAS)
+  # ===================================================
+
+  # ===================================================
+  #  SERVIÇO DVWA (Damn Vulnerable Web Application)
+  # =================================================== 
+  dvwa:
+    image: vulnerables/web-dvwa
+    container_name: dvwa
+    ports:
+      - "8081:80"
+
+  # ===================================================
+  #  SERVIÇO OLLAMA (Modelo de Linguagem)
+  # =================================================== 
+  ollama:
+   image: ollama/ollama
+   container_name: ollama
+   ports:
+    - "11434:11434"
+
+   volumes:
+    - ollama_data:/root/.ollama
+   
+
+  pentester:
+    build: .
+    container_name: pentester
+    working_dir: /work
+   #entrypoint: ["bash"]
+    volumes:
+      - ./results:/results
+      - ./wordlists:/wordlists
+      - ./nuclei-templates:/opt/nuclei-templates
+volumes:
+  ollama_data:

@@ -1,0 +1,1467 @@
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+import subprocess
+import threading
+import shlex
+import os
+import webbrowser
+import traceback
+from app.services.ai_service import ensure_model
+
+
+# ======================================================
+# =========     MATERIAL DESIGN UI (ttkbootstrap)   =====
+# ======================================================
+try:
+    import ttkbootstrap as tb
+except ImportError:
+    raise SystemExit(
+        "Você precisa instalar ttkbootstrap primeiro:\n"
+        "pip install ttkbootstrap"
+    )
+
+# ======================================================
+# =========     VALIDAÇÕES E UTILITÁRIOS           =====
+# ======================================================
+
+def sanitize(v):
+    return "" if v is None else str(v).strip()
+
+def valid_url(url):
+    if not url:
+        return False
+    if " " in url:
+        return False
+    return True
+
+def valid_port(port):
+    if not port.isdigit():
+        return False
+    p = int(port)
+    return 1 <= p <= 65535
+
+
+# ======================================================
+# ===============     APLICAÇÃO PRINCIPAL       =========
+# ======================================================
+class PentesterApp(tb.Window):
+    def __init__(self):
+        super().__init__(themename="flatly")   # Material-like theme
+
+        self.title("Pentester Suite — Ultimate Edition")
+        self.geometry("1280x820")
+        self.minsize(1100, 750)
+
+        # Diretório de trabalho docker
+        self.docker_dir = os.path.join(os.path.dirname(__file__), "docker")
+        if not os.path.isdir(self.docker_dir):
+            os.makedirs(self.docker_dir, exist_ok=True)
+
+        # Controle de processos Docker
+        self.current_proc = None
+        self.proc_thread = None
+
+        # Notebook principal (ABAS)
+        self.notebook = ttk.Notebook(self)
+        self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Dicionário para cada aba
+        self.tabs = {}
+
+        # Criar ABAS
+        for tool in [
+            "Nmap",
+            "SQLmap",
+            "Nuclei",
+            "Nikto",
+            "Gobuster",
+            "Dirsearch",
+            "Commix",
+            "Netcat",
+        ]:
+            self.create_tab(tool)
+
+        # Construir conteúdo de cada aba
+        self.build_nmap_tab()
+        self.build_sqlmap_tab()
+        self.build_nuclei_tab()
+        self.build_nikto_tab()
+        self.build_gobuster_tab()
+        self.build_dirsearch_tab()
+        self.build_commix_tab()
+        self.build_netcat_tab()
+
+    # ======================================================
+    # Criação de uma aba genérica
+    # ======================================================
+    def create_tab(self, name):
+        frame = ttk.Frame(self.notebook)
+        self.tabs[name] = frame
+        self.notebook.add(frame, text=name)
+
+    def init_ai():
+        ensure_model()
+        
+    threading.Thread(target=ensure_model, daemon=True).start() 
+    # ======================================================
+    # Execução em Docker
+    # ======================================================
+    def run_docker(self, service, cmd_list, output_widget, on_finish=None):
+        docker_cmd = ["docker", "compose", "run", "--rm", "--remove-orphans", service] + cmd_list
+
+        def worker():
+            try:
+                # DEBUG deve ficar ANTES do Popen
+                print("[DEBUG] docker_dir =", self.docker_dir)
+                output_widget.insert("end", f"[DEBUG] docker_dir = {self.docker_dir}\n")
+
+                print("[DEBUG] CMD =", " ".join(docker_cmd))
+                output_widget.insert("end", f"[DEBUG] CMD = {' '.join(docker_cmd)}\n")
+                proc = subprocess.Popen(
+                    docker_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    encoding="utf-8",
+                    errors="ignore",
+                    cwd=self.docker_dir
+                )
+                self.current_proc = proc
+
+                for line in proc.stdout:
+                    output_widget.insert("end", line)
+                    output_widget.see("end")
+
+                rc = proc.wait()
+                output_widget.insert("end", f"\n[Finalizado] Código: {rc}\n")
+
+            except Exception as e:
+                output_widget.insert("end", f"ERRO: {e}\n{traceback.format_exc()}")
+
+            finally:
+                self.current_proc = None
+                if on_finish:
+                    on_finish()
+
+        th = threading.Thread(target=worker, daemon=True)
+        th.start()
+    
+
+    # ======================================================
+    # Cancelar processo Docker atual
+    # ======================================================
+    def cancel_process(self):
+        if self.current_proc:
+            try:
+                self.current_proc.terminate()
+            except:
+                pass
+            self.current_proc = None
+            
+    # ============================================================
+    # =======================  ABA NMAP  ==========================
+    # ============================================================
+    def build_nmap_tab(self):
+        tab = self.tabs["Nmap"]
+
+        # ============================================================
+        # FORMULÁRIO SUPERIOR
+        # ============================================================
+        form = ttk.Labelframe(tab, text="Configuração do Scan")
+        form.pack(fill="x", padx=10, pady=10)
+
+        # Alvo
+        ttk.Label(form, text="Alvo (IP / Host):").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        self.nmap_target = ttk.Entry(form, width=50)
+        self.nmap_target.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+
+        # Porta opcional
+        ttk.Label(form, text="Porta (opcional):").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        self.nmap_port = ttk.Entry(form, width=20)
+        self.nmap_port.grid(row=1, column=1, sticky="w", padx=5, pady=5)
+
+        # ============================================================
+        # OPÇÕES DE SCAN 
+        # ============================================================
+        frame_modes = ttk.Labelframe(tab, text="Modo de Varredura")
+        frame_modes.pack(fill="x", padx=10, pady=10)
+
+        self.nmap_mode = ttk.Combobox(
+            frame_modes,
+            width=55,
+            state="readonly",
+            values=[
+                "Ver portas abertas (varre todas as portas, pode demorar)",
+                "Scan portas comuns (top 1000)",
+                "Scan porta específica (usar campo Porta)",
+                "Varredura completa TCP com detecção de SO e versões (-p- -sS -sV -O)",
+                "Scan agressivo (scripts default + OS + version) (-A)",
+                "UDP scan (top 1000) (-sU)",
+                "Usar scripts de vulnerabilidade (--script vuln)"
+            ]
+        )
+        self.nmap_mode.grid(row=0, column=0, padx=5, pady=10)
+        self.nmap_mode.current(0)
+
+        # Verbose
+        self.nmap_verbose = tk.BooleanVar()
+        ttk.Checkbutton(frame_modes, text="Verbose (-v)", variable=self.nmap_verbose).grid(
+            row=0, column=1, padx=10
+        )
+
+        # ============================================================
+        # OUTPUT
+        # ============================================================
+        self.nmap_output = tk.Text(tab, wrap="word", height=22)
+        self.nmap_output.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # ============================================================
+        # BOTÕES
+        # ============================================================
+        btns = ttk.Frame(tab)
+        btns.pack(fill="x", pady=10)
+
+        ttk.Button(btns, text="Gerar Comando", bootstyle="secondary",
+                   command=self.nmap_generate).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Executar", bootstyle="success",
+                   command=self.nmap_execute).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Cancelar", bootstyle="danger",
+                   command=self.cancel_process).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Limpar", bootstyle="info",
+                   command=lambda: self.nmap_output.delete("1.0", "end")).pack(side="left", padx=5)
+
+
+    # ============================================================
+    # FUNÇÕES — NMAP
+    # ============================================================
+    def nmap_generate(self):
+        self.nmap_output.delete("1.0", "end")
+        try:
+            cmd = self.build_nmap_command()
+            pretty = " ".join(shlex.quote(c) for c in cmd)
+            self.nmap_output.insert("end", pretty + "\n")
+        except Exception as e:
+            self.nmap_output.insert("end", f"[ERRO] {e}\n")
+
+
+    def build_nmap_command(self):
+        target = sanitize(self.nmap_target.get())
+        if not valid_url(target):
+            raise ValueError("Alvo inválido.")
+
+        mode = self.nmap_mode.get()
+        port = sanitize(self.nmap_port.get())
+
+        cmd = ["nmap"]
+
+
+        if mode == "Ver portas abertas (varre todas as portas, pode demorar)":
+            cmd += ["-p-", "--open", "-sV"]
+
+        elif mode == "Scan portas comuns (top 1000)":
+            cmd += ["-sT", "--top-ports", "1000", "-sV"]
+
+        elif mode == "Scan porta específica (usar campo Porta)":
+            if not valid_port(port):
+                raise ValueError("Porta inválida.")
+            cmd += ["-p", port, "-sV"]
+
+        elif mode == "Varredura completa TCP com detecção de SO e versões (-p- -sS -sV -O)":
+            cmd += ["-p-", "-sT", "-sV", "-O", "-T4"]
+
+        elif mode == "Scan agressivo (scripts default + OS + version) (-A)":
+            cmd += ["-A", "-T4"]
+
+        elif mode == "UDP scan (top 1000) (-sU)":
+            cmd += ["-sU", "--top-ports", "1000"]
+
+        elif mode == "Usar scripts de vulnerabilidade (--script vuln)":
+            cmd += ["-sV", "--script", "vuln"]
+
+        # Verbose extra
+        if self.nmap_verbose.get():
+            cmd.append("-v")
+
+        # Final: alvo
+        cmd.append(target)
+
+        return cmd
+
+
+    def nmap_execute(self):
+        self.nmap_output.delete("1.0", "end")
+
+        try:
+            cmd = self.build_nmap_command()
+        except Exception as e:
+            self.nmap_output.insert("end", f"[ERRO] {e}\n")
+            return
+
+        
+
+        self.run_docker("pentester", cmd, self.nmap_output)
+
+    # ============================================================
+    # =======================  ABA SQLMAP  =========================
+    # ============================================================
+    def build_sqlmap_tab(self):
+        tab = self.tabs["SQLmap"]
+
+        # ============================================================
+        # FORMULÁRIO PRINCIPAL
+        # ============================================================
+        form = ttk.Labelframe(tab, text="Configuração do SQLmap")
+        form.pack(fill="x", padx=10, pady=10)
+
+        # URL alvo
+        ttk.Label(form, text="URL alvo (com parâmetro):").grid(
+            row=0, column=0, sticky="w", padx=5, pady=5
+        )
+        self.sqlmap_target = ttk.Entry(form, width=60)
+        self.sqlmap_target.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+
+        # Parâmetro específico
+        ttk.Label(form, text="Parâmetro (se aplicável):").grid(
+            row=1, column=0, sticky="w", padx=5, pady=5
+        )
+        self.sqlmap_param = ttk.Entry(form, width=30)
+        self.sqlmap_param.grid(row=1, column=1, sticky="w", padx=5, pady=5)
+
+        # Data (POST)
+        ttk.Label(form, text="POST data (opcional):").grid(
+            row=2, column=0, sticky="w", padx=5, pady=5
+        )
+        self.sqlmap_data = ttk.Entry(form, width=50)
+        self.sqlmap_data.grid(row=2, column=1, sticky="w", padx=5, pady=5)
+
+        mode_box = ttk.Labelframe(tab, text="Modo SQLmap")
+        mode_box.pack(fill="x", padx=10, pady=10)
+
+        self.sqlmap_mode = ttk.Combobox(
+            mode_box,
+            width=55,
+            state="readonly",
+            values=[
+                "Teste básico de SQLi (--batch)",
+                "Enumerar bancos (--dbs)",
+                "Testar parâmetro específico (-p)",
+                "SQLi agressivo (level 5 / risk 3)"
+            ]
+        )
+        self.sqlmap_mode.grid(row=0, column=0, padx=5, pady=10)
+        self.sqlmap_mode.current(0)
+
+        # ============================================================
+        # OUTPUT
+        # ============================================================
+        self.sqlmap_output = tk.Text(tab, wrap="word", height=22)
+        self.sqlmap_output.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # ============================================================
+        # BOTÕES
+        # ============================================================
+        btns = ttk.Frame(tab)
+        btns.pack(fill="x", pady=10)
+
+        ttk.Button(btns, text="Gerar Comando", bootstyle="secondary",
+                   command=self.sqlmap_generate).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Executar", bootstyle="success",
+                   command=self.sqlmap_execute).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Cancelar", bootstyle="danger",
+                   command=self.cancel_process).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Limpar", bootstyle="info",
+                   command=lambda: self.sqlmap_output.delete("1.0", "end")).pack(side="left", padx=5)
+
+
+    # ============================================================
+    # FUNÇÕES — SQLMAP
+    # ============================================================
+    def sqlmap_generate(self):
+        self.sqlmap_output.delete("1.0", "end")
+        try:
+            cmd = self.build_sqlmap_command()
+            pretty = " ".join(shlex.quote(c) for c in cmd)
+            self.sqlmap_output.insert("end", pretty + "\n")
+        except Exception as e:
+            self.sqlmap_output.insert("end", f"[ERRO] {e}\n")
+
+
+    def build_sqlmap_command(self):
+        target = sanitize(self.sqlmap_target.get())
+        if not valid_url(target):
+            raise ValueError("URL inválida")
+
+        mode = self.sqlmap_mode.get()
+        param = sanitize(self.sqlmap_param.get())
+        data = sanitize(self.sqlmap_data.get())
+
+        # Comando base
+        cmd = ["sqlmap", "-u", target, "--batch"]
+
+        if mode == "Teste básico de SQLi (--batch)":
+            if data:
+                cmd += ["--data", data]
+
+        elif mode == "Enumerar bancos (--dbs)":
+            cmd += ["--dbs"]
+
+        elif mode == "Testar parâmetro específico (-p)":
+            if not param:
+                raise ValueError("Parâmetro obrigatório")
+            cmd += ["-p", param]
+
+        elif mode == "SQLi agressivo (level 5 / risk 3)":
+            cmd += ["--level", "5", "--risk", "3"]
+            if data:
+                cmd += ["--data", data]
+
+        return cmd
+
+
+    def sqlmap_execute(self):
+        self.sqlmap_output.delete("1.0", "end")
+
+        try:
+            cmd = self.build_sqlmap_command()
+        except Exception as e:
+            self.sqlmap_output.insert("end", f"[ERRO] {e}\n")
+            return
+
+        self.run_docker("pentester", cmd, self.sqlmap_output)
+
+    # ============================================================
+    # =======================  ABA NUCLEI  ========================
+    # ============================================================
+    def build_nuclei_tab(self):
+        tab = self.tabs["Nuclei"]
+
+        # ============================================================
+        # FORMULÁRIO
+        # ============================================================
+        form = ttk.Labelframe(tab, text="Configuração do Nuclei")
+        form.pack(fill="x", padx=10, pady=10)
+
+        # Alvo
+        ttk.Label(form, text="URL / Host:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        self.nuclei_target = ttk.Entry(form, width=60)
+        self.nuclei_target.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+
+        # Parâmetro
+        ttk.Label(form, text="Parâmetro extra (opcional):").grid(
+            row=1, column=0, sticky="w", padx=5, pady=5
+        )
+        self.nuclei_param = ttk.Entry(form, width=40)
+        self.nuclei_param.grid(row=1, column=1, sticky="w", padx=5, pady=5)
+
+        mode_box = ttk.Labelframe(tab, text="Modo de Execução")
+        mode_box.pack(fill="x", padx=10, pady=10)
+
+        self.nuclei_mode = ttk.Combobox(
+            mode_box,
+            width=55,
+            state="readonly",
+            values=[
+                "Scan alvo (-u)",
+                "Scan lista de alvos (-l)",
+                "Atualizar templates (-update-templates)",
+                "Scan com templates locais (-t)",
+                "Salvar saída JSON (-json)",
+                "Scan verbose (-v)"
+            ]
+        )
+        self.nuclei_mode.grid(row=0, column=0, padx=5, pady=10)
+        self.nuclei_mode.current(0)
+
+        # Aviso útil
+        ttk.Label(
+            mode_box,
+            text="Templates em: /opt/nuclei-templates\nTargets.txt em: /work/targets.txt",
+            foreground="gray"
+        ).grid(row=1, column=0, sticky="w", padx=5)
+
+        # ============================================================
+        # OUTPUT
+        # ============================================================
+        self.nuclei_output = tk.Text(tab, wrap="word", height=22)
+        self.nuclei_output.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # ============================================================
+        # BOTÕES
+        # ============================================================
+        btns = ttk.Frame(tab)
+        btns.pack(fill="x", pady=10)
+
+        ttk.Button(btns, text="Gerar Comando", bootstyle="secondary",
+                   command=self.nuclei_generate).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Executar", bootstyle="success",
+                   command=self.nuclei_execute).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Cancelar", bootstyle="danger",
+                   command=self.cancel_process).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Limpar", bootstyle="info",
+                   command=lambda: self.nuclei_output.delete("1.0", "end")).pack(side="left", padx=5)
+
+    # ============================================================
+    # FUNÇÕES — NUCLEI
+    # ============================================================
+    def nuclei_generate(self):
+        self.nuclei_output.delete("1.0", "end")
+        try:
+            cmd = self.build_nuclei_command()
+            pretty = " ".join(shlex.quote(c) for c in cmd)
+            self.nuclei_output.insert("end", pretty + "\n")
+        except Exception as e:
+            self.nuclei_output.insert("end", f"[ERRO] {e}\n")
+
+    def build_nuclei_command(self):
+        mode = self.nuclei_mode.get()
+        target = sanitize(self.nuclei_target.get())
+        param = sanitize(self.nuclei_param.get())
+
+        cmd = ["nuclei"]
+
+
+        if mode == "Scan alvo (-u)":
+            if not valid_url(target):
+                raise ValueError("Alvo inválido.")
+            cmd += ["-u", target]
+
+        elif mode == "Scan lista de alvos (-l)":
+            cmd += ["-l", "/work/targets.txt"]
+
+        elif mode == "Atualizar templates (-update-templates)":
+            cmd += ["-update-templates"]
+
+        elif mode == "Scan com templates locais (-t)":
+            if not valid_url(target):
+                raise ValueError("Alvo inválido.")
+            cmd += ["-u", target, "-t", "/opt/nuclei-templates"]
+
+        elif mode == "Salvar saída JSON (-json)":
+            if not valid_url(target):
+                raise ValueError("Alvo inválido.")
+            cmd += ["-u", target, "-json", "/work/output/result.json"]
+
+        elif mode == "Scan verbose (-v)":
+            if not valid_url(target):
+                raise ValueError("Alvo inválido.")
+            cmd += ["-u", target, "-v"]
+
+        # Param extra
+        if param:
+            cmd += shlex.split(param)
+
+        return cmd
+
+    def nuclei_execute(self):
+        self.nuclei_output.delete("1.0", "end")
+
+        try:
+            cmd = self.build_nuclei_command()
+        except Exception as e:
+            self.nuclei_output.insert("end", f"[ERRO] {e}\n")
+            return
+
+        self.run_docker("pentester", cmd, self.nuclei_output)
+    # ============================================================
+    # ========================  ABA NIKTO  =========================
+    # ============================================================
+    def build_nikto_tab(self):
+        tab = self.tabs["Nikto"]
+
+        # ============================================================
+        # FORMULÁRIO
+        # ============================================================
+        form = ttk.Labelframe(tab, text="Configuração do Nikto")
+        form.pack(fill="x", padx=10, pady=10)
+
+        ttk.Label(form, text="Host / URL:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        self.nikto_host = ttk.Entry(form, width=60)
+        self.nikto_host.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+
+        ttk.Label(form, text="Porta (opcional):").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        self.nikto_port = ttk.Entry(form, width=20)
+        self.nikto_port.grid(row=1, column=1, sticky="w", padx=5, pady=5)
+
+        # SSL
+        self.nikto_ssl = tk.BooleanVar()
+        ttk.Checkbutton(form, text="Forçar SSL/HTTPS (-ssl)", variable=self.nikto_ssl).grid(
+            row=2, column=1, sticky="w", padx=5
+        )
+
+        # ============================================================
+        # OPÇÕES ESPECÍFICAS
+        # ============================================================
+        options = ttk.Labelframe(tab, text="Opções avançadas")
+        options.pack(fill="x", padx=10, pady=10)
+
+        ttk.Label(options, text="Tuning (ex: 123b):").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        self.nikto_tuning = ttk.Entry(options, width=20)
+        self.nikto_tuning.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+
+        ttk.Label(options, text="Plugins (ex: apacheusers):").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        self.nikto_plugins = ttk.Entry(options, width=20)
+        self.nikto_plugins.grid(row=1, column=1, sticky="w", padx=5, pady=5)
+
+        # User-Agent customizado
+        ttk.Label(options, text="User-Agent (opcional):").grid(row=2, column=0, sticky="w", padx=5, pady=5)
+        self.nikto_ua = ttk.Entry(options, width=40)
+        self.nikto_ua.grid(row=2, column=1, sticky="w", padx=5, pady=5)
+
+        # Saída JSON
+        self.nikto_json = tk.BooleanVar()
+        ttk.Checkbutton(options, text="Gerar JSON (-Format json)", variable=self.nikto_json).grid(
+            row=3, column=1, sticky="w", padx=5
+        )
+
+        # Parâmetros extras
+        ttk.Label(options, text="Parâmetros extras:").grid(row=4, column=0, sticky="w", padx=5, pady=5)
+        self.nikto_extra = ttk.Entry(options, width=60)
+        self.nikto_extra.grid(row=4, column=1, sticky="w", padx=5, pady=5)
+
+        # ============================================================
+        # OUTPUT
+        # ============================================================
+        self.nikto_output = tk.Text(tab, wrap="word", height=22)
+        self.nikto_output.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # ============================================================
+        # BOTÕES
+        # ============================================================
+        btns = ttk.Frame(tab)
+        btns.pack(fill="x", pady=10)
+
+        ttk.Button(btns, text="Gerar Comando", bootstyle="secondary",
+                   command=self.nikto_generate).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Executar", bootstyle="success",
+                   command=self.nikto_execute).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Cancelar", bootstyle="danger",
+                   command=self.cancel_process).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Limpar", bootstyle="info",
+                   command=lambda: self.nikto_output.delete("1.0", "end")).pack(side="left", padx=5)
+
+
+    # ============================================================
+    # FUNÇÕES — NIKTO
+    # ============================================================
+    def nikto_generate(self):
+        self.nikto_output.delete("1.0", "end")
+        try:
+            cmd = self.build_nikto_command()
+            pretty = " ".join(shlex.quote(c) for c in cmd)
+            self.nikto_output.insert("end", pretty + "\n")
+        except Exception as e:
+            self.nikto_output.insert("end", f"[ERRO] {e}\n")
+
+
+    def build_nikto_command(self):
+        host = sanitize(self.nikto_host.get())
+        if not valid_url(host):
+            raise ValueError("Host inválido.")
+
+        port = sanitize(self.nikto_port.get())
+        tuning = sanitize(self.nikto_tuning.get())
+        plugins = sanitize(self.nikto_plugins.get())
+        user_agent = sanitize(self.nikto_ua.get())
+        extra = sanitize(self.nikto_extra.get())
+
+        cmd = ["nikto", "-h", host]
+
+        if port:
+            if not valid_port(port):
+                raise ValueError("Porta inválida.")
+            cmd += ["-p", port]
+
+        if self.nikto_ssl.get():
+            cmd.append("-ssl")
+
+        if tuning:
+            cmd += ["-Tuning", tuning]
+
+        if plugins:
+            cmd += ["-Plugins", plugins]
+
+        if user_agent:
+            cmd += ["-useragent", user_agent]
+
+        if self.nikto_json.get():
+            cmd += ["-Format", "json", "-output", "/work/output/nikto.json"]
+
+        if extra:
+            cmd += shlex.split(extra)
+
+        return cmd
+
+
+    def nikto_execute(self):
+        self.nikto_output.delete("1.0", "end")
+
+        try:
+            cmd = self.build_nikto_command()
+        except Exception as e:
+            self.nikto_output.insert("end", f"[ERRO] {e}\n")
+            return
+
+        self.run_docker("pentester", cmd, self.nikto_output)
+
+
+    # ============================================================
+    # ======================  ABA GOBUSTER  =======================
+    # ============================================================
+    def build_gobuster_tab(self):
+        tab = self.tabs["Gobuster"]
+
+        # ============================================================
+        # FORMULÁRIO
+        # ============================================================
+        form = ttk.Labelframe(tab, text="Configuração do Gobuster")
+        form.pack(fill="x", padx=10, pady=10)
+
+        # Target
+        ttk.Label(form, text="URL / Host / Domínio:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        self.gb_target = ttk.Entry(form, width=60)
+        self.gb_target.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+
+        # Modo principal
+        ttk.Label(form, text="Modo:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        self.gb_mode = ttk.Combobox(
+            form, state="readonly", width=20,
+            values=["dir", "dns", "vhost", "fuzz"]
+        )
+        self.gb_mode.grid(row=1, column=1, sticky="w", padx=5)
+        self.gb_mode.current(0)
+
+        # ============================================================
+        # WORDLIST
+        # ============================================================
+        wl_frame = ttk.Labelframe(tab, text="Wordlist")
+        wl_frame.pack(fill="x", padx=10, pady=10)
+
+        ttk.Label(wl_frame, text="Arquivo de wordlist:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        self.gb_wordlist = ttk.Entry(wl_frame, width=50)
+        self.gb_wordlist.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+
+        ttk.Button(wl_frame, text="Selecionar", bootstyle="info",
+                   command=self.select_wordlist_gobuster).grid(
+                       row=0, column=2, padx=5
+                   )
+
+        # ============================================================
+        # OPÇÕES AVANÇADAS
+        # ============================================================
+        adv = ttk.Labelframe(tab, text="Opções avançadas")
+        adv.pack(fill="x", padx=10, pady=10)
+
+        ttk.Label(adv, text="Threads:").grid(row=0, column=0, sticky="w", padx=5)
+        self.gb_threads = ttk.Entry(adv, width=10)
+        self.gb_threads.insert(0, "50")
+        self.gb_threads.grid(row=0, column=1, sticky="w", padx=5)
+
+        ttk.Label(adv, text="Extensões (csv,php,txt):").grid(row=1, column=0, sticky="w", padx=5)
+        self.gb_extensions = ttk.Entry(adv, width=30)
+        self.gb_extensions.grid(row=1, column=1, sticky="w", padx=5)
+
+        # Status codes
+        ttk.Label(adv, text="Status válidos (ex: 200,204,301):").grid(row=2, column=0, sticky="w", padx=5)
+        self.gb_status = ttk.Entry(adv, width=30)
+        self.gb_status.grid(row=2, column=1, sticky="w", padx=5)
+
+        # Follow redirects
+        self.gb_follow = tk.BooleanVar()
+        ttk.Checkbutton(adv, text="Seguir redirects (-r)", variable=self.gb_follow).grid(
+            row=3, column=1, sticky="w", padx=5
+        )
+
+        # Timeout
+        ttk.Label(adv, text="Timeout (s):").grid(row=4, column=0, sticky="w", padx=5)
+        self.gb_timeout = ttk.Entry(adv, width=10)
+        self.gb_timeout.insert(0, "10")
+        self.gb_timeout.grid(row=4, column=1, sticky="w", padx=5)
+
+        # Parâmetros extras
+        ttk.Label(adv, text="Extras:").grid(row=5, column=0, sticky="w", padx=5)
+        self.gb_extra = ttk.Entry(adv, width=60)
+        self.gb_extra.grid(row=5, column=1, sticky="w", padx=5, pady=5)
+
+        # ============================================================
+        # OUTPUT
+        # ============================================================
+        self.gb_output = tk.Text(tab, wrap="word", height=22)
+        self.gb_output.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # ============================================================
+        # BOTÕES
+        # ============================================================
+        btns = ttk.Frame(tab)
+        btns.pack(fill="x", pady=10)
+
+        ttk.Button(btns, text="Gerar Comando", bootstyle="secondary",
+                   command=self.gb_generate).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Executar", bootstyle="success",
+                   command=self.gb_execute).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Cancelar", bootstyle="danger",
+                   command=self.cancel_process).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Limpar", bootstyle="info",
+                   command=lambda: self.gb_output.delete("1.0", "end")).pack(side="left", padx=5)
+
+
+    # ============================================================
+    #  SELECT WORDLIST
+    # ============================================================
+    def select_wordlist_gobuster(self):
+        p = filedialog.askopenfilename(initialdir="./wordlists")
+        if p:
+            self.gb_wordlist.delete(0, "end")
+            self.gb_wordlist.insert(0, p)
+
+    # ============================================================
+    #  MONTAR COMANDO
+    # ============================================================
+    def gb_generate(self):
+        self.gb_output.delete("1.0", "end")
+        try:
+            cmd = self.build_gobuster_command()
+            pretty = " ".join(shlex.quote(c) for c in cmd)
+            self.gb_output.insert("end", pretty + "\n")
+        except Exception as e:
+            self.gb_output.insert("end", f"[ERRO] {e}\n")
+
+
+    def build_gobuster_command(self):
+        mode = self.gb_mode.get()
+        target = sanitize(self.gb_target.get())
+        wl = sanitize(self.gb_wordlist.get())
+
+        if not os.path.exists(wl):
+            raise ValueError("Wordlist inválida.")
+
+        cmd = ["gobuster", mode]
+
+        if mode == "dir":
+            if not valid_url(target):
+                raise ValueError("URL inválida.")
+            cmd += ["-u", target]
+
+            ext = sanitize(self.gb_extensions.get())
+            if ext:
+                cmd += ["-x", ext]
+
+        elif mode == "dns":
+            cmd += ["-d", target]
+
+        elif mode == "vhost":
+            cmd += ["-u", target]
+
+        elif mode == "fuzz":
+            if "{FUZ}" not in target and "{GOBUSTER}" not in target:
+                raise ValueError("URL para fuzz precisa conter {GOBUSTER} ou {FUZ}.")
+            cmd += ["-u", target]
+
+        # Wordlist
+        cmd += ["-w", wl]
+
+        # Threads
+        cmd += ["-t", sanitize(self.gb_threads.get())]
+
+        # Status
+        status = sanitize(self.gb_status.get())
+        if status:
+            cmd += ["-s", status]
+
+        # Timeout
+        timeout = sanitize(self.gb_timeout.get())
+        if timeout:
+            cmd += ["-to", timeout]
+
+        # Follow redirects
+        if self.gb_follow.get():
+            cmd.append("-r")
+
+        # Extras
+        extra = sanitize(self.gb_extra.get())
+        if extra:
+            cmd += shlex.split(extra)
+
+        return cmd
+
+    # ============================================================
+    #  EXECUTAR
+    # ============================================================
+    def gb_execute(self):
+        self.gb_output.delete("1.0", "end")
+        try:
+            cmd = self.build_gobuster_command()
+        except Exception as e:
+            self.gb_output.insert("end", f"[ERRO] {e}\n")
+            return
+
+        self.run_docker("pentester", cmd, self.gb_output)
+
+    # ============================================================
+    # ======================  ABA DIRSEARCH  ======================
+    # ============================================================
+    def build_dirsearch_tab(self):
+        tab = self.tabs["Dirsearch"]
+
+        # ============================================================
+        # FORMULÁRIO
+        # ============================================================
+        form = ttk.Labelframe(tab, text="Configuração do Dirsearch")
+        form.pack(fill="x", padx=10, pady=10)
+
+        ttk.Label(form, text="URL alvo:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        self.ds_target = ttk.Entry(form, width=60)
+        self.ds_target.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+
+        # Wordlist
+        ttk.Label(form, text="Wordlist:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        self.ds_wordlist = ttk.Entry(form, width=50)
+        self.ds_wordlist.grid(row=1, column=1, sticky="w", padx=5)
+        ttk.Button(form, text="Selecionar", bootstyle="info",
+                   command=self.select_wordlist_dirsearch).grid(
+            row=1, column=2, padx=5
+        )
+
+        # ============================================================
+        # OPÇÕES AVANÇADAS
+        # ============================================================
+        adv = ttk.Labelframe(tab, text="Opções Avançadas")
+        adv.pack(fill="x", padx=10, pady=10)
+
+        # Extensões
+        ttk.Label(adv, text="Extensões (.php,.txt):").grid(row=0, column=0, sticky="w", padx=5)
+        self.ds_ext = ttk.Entry(adv, width=40)
+        self.ds_ext.grid(row=0, column=1, sticky="w", padx=5)
+
+        # Métodos HTTP
+        ttk.Label(adv, text="Métodos (GET,POST):").grid(row=1, column=0, sticky="w", padx=5)
+        self.ds_methods = ttk.Entry(adv, width=20)
+        self.ds_methods.insert(0, "GET")
+        self.ds_methods.grid(row=1, column=1, sticky="w", padx=5)
+
+        # Recursion
+        ttk.Label(adv, text="Nível de recursão:").grid(row=2, column=0, sticky="w", padx=5)
+        self.ds_recursion = ttk.Entry(adv, width=10)
+        self.ds_recursion.insert(0, "1")
+        self.ds_recursion.grid(row=2, column=1, sticky="w", padx=5)
+
+        # Forçar lowercase
+        self.ds_lower = tk.BooleanVar()
+        ttk.Checkbutton(adv, text="Forçar lowercase (--lowercase)", variable=self.ds_lower).grid(
+            row=3, column=1, sticky="w"
+        )
+
+        # Excluir status
+        ttk.Label(adv, text="Excluir status (ex: 404,403):").grid(row=4, column=0, sticky="w", padx=5)
+        self.ds_exclude = ttk.Entry(adv, width=20)
+        self.ds_exclude.grid(row=4, column=1, sticky="w", padx=5)
+
+        # Threads
+        ttk.Label(adv, text="Threads:").grid(row=5, column=0, sticky="w", padx=5)
+        self.ds_threads = ttk.Entry(adv, width=10)
+        self.ds_threads.insert(0, "30")
+        self.ds_threads.grid(row=5, column=1, sticky="w", padx=5)
+
+        # Timeout
+        ttk.Label(adv, text="Timeout (s):").grid(row=6, column=0, sticky="w", padx=5)
+        self.ds_timeout = ttk.Entry(adv, width=10)
+        self.ds_timeout.insert(0, "10")
+        self.ds_timeout.grid(row=6, column=1, sticky="w", padx=5)
+
+        # Output JSON
+        self.ds_json = tk.BooleanVar()
+        ttk.Checkbutton(adv, text="Salvar JSON (--json-report)", variable=self.ds_json).grid(
+            row=7, column=1, sticky="w", pady=5
+        )
+
+        # Parâmetros extras
+        ttk.Label(adv, text="Extras:").grid(row=8, column=0, sticky="w", padx=5, pady=5)
+        self.ds_extra = ttk.Entry(adv, width=60)
+        self.ds_extra.grid(row=8, column=1, sticky="w", padx=5, pady=5)
+
+        # ============================================================
+        # OUTPUT
+        # ============================================================
+        self.ds_output = tk.Text(tab, wrap="word", height=22)
+        self.ds_output.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # ============================================================
+        # BOTÕES
+        # ============================================================
+        btns = ttk.Frame(tab)
+        btns.pack(fill="x", pady=10)
+
+        ttk.Button(btns, text="Gerar Comando", bootstyle="secondary",
+                   command=self.ds_generate).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Executar", bootstyle="success",
+                   command=self.ds_execute).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Cancelar", bootstyle="danger",
+                   command=self.cancel_process).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Limpar", bootstyle="info",
+                   command=lambda: self.ds_output.delete("1.0", "end")).pack(side="left", padx=5)
+
+
+    # ============================================================
+    # SELECT WORDLIST
+    # ============================================================
+    def select_wordlist_dirsearch(self):
+        p = filedialog.askopenfilename(initialdir="./wordlists")
+        if p:
+            self.ds_wordlist.delete(0, "end")
+            self.ds_wordlist.insert(0, p)
+
+    # ============================================================
+    # GERAR COMANDO
+    # ============================================================
+    def ds_generate(self):
+        self.ds_output.delete("1.0", "end")
+        try:
+            cmd = self.build_dirsearch_command()
+            pretty = " ".join(shlex.quote(c) for c in cmd)
+            self.ds_output.insert("end", pretty + "\n")
+        except Exception as e:
+            self.ds_output.insert("end", f"[ERRO] {e}\n")
+
+
+    def build_dirsearch_command(self):
+        target = sanitize(self.ds_target.get())
+        wl = sanitize(self.ds_wordlist.get())
+
+        if not valid_url(target):
+            raise ValueError("URL inválida.")
+
+        if not os.path.exists(wl):
+            raise ValueError("Wordlist inválida.")
+
+        cmd = ["dirsearch", "-u", target, "-w", wl]
+
+        # Extensões
+        ext = sanitize(self.ds_ext.get())
+        if ext:
+            cmd += ["-e", ext]
+
+        # Métodos
+        methods = sanitize(self.ds_methods.get())
+        if methods:
+            cmd += ["-m", methods]
+
+        # Recursão
+        recursion = sanitize(self.ds_recursion.get())
+        if recursion.isdigit():
+            cmd += ["--recursion-depth", recursion]
+
+        # Lowercase
+        if self.ds_lower.get():
+            cmd.append("--lowercase")
+
+        # Excluir status
+        exclude = sanitize(self.ds_exclude.get())
+        if exclude:
+            cmd += ["--exclude-status", exclude]
+
+        # Threads
+        threads = sanitize(self.ds_threads.get())
+        if threads.isdigit():
+            cmd += ["-t", threads]
+
+        # Timeout
+        timeout = sanitize(self.ds_timeout.get())
+        if timeout.isdigit():
+            cmd += ["--timeout", timeout]
+
+        # JSON
+        if self.ds_json.get():
+            cmd += ["--json-report", "/work/output/dirsearch.json"]
+
+        # Extras
+        extra = sanitize(self.ds_extra.get())
+        if extra:
+            cmd += shlex.split(extra)
+
+        return cmd
+
+    # ============================================================
+    # EXECUTAR
+    # ============================================================
+    def ds_execute(self):
+        self.ds_output.delete("1.0", "end")
+
+        try:
+            cmd = self.build_dirsearch_command()
+        except Exception as e:
+            self.ds_output.insert("end", f"[ERRO] {e}\n")
+            return
+
+        self.run_docker("pentester", cmd, self.ds_output)
+
+    # ============================================================
+    # =========================  ABA COMMIX  =======================
+    # ============================================================
+    def build_commix_tab(self):
+        tab = self.tabs["Commix"]
+
+        # ============================================================
+        # FORMULÁRIO PRINCIPAL
+        # ============================================================
+        form = ttk.Labelframe(tab, text="Configuração do Commix")
+        form.pack(fill="x", padx=10, pady=10)
+
+        ttk.Label(form, text="URL alvo:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        self.cx_url = ttk.Entry(form, width=60)
+        self.cx_url.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+
+        ttk.Label(form, text="POST data (opcional):").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        self.cx_data = ttk.Entry(form, width=60)
+        self.cx_data.grid(row=1, column=1, sticky="w", padx=5, pady=5)
+
+        # Cookie
+        ttk.Label(form, text="Cookie (opcional):").grid(row=2, column=0, sticky="w", padx=5, pady=5)
+        self.cx_cookie = ttk.Entry(form, width=60)
+        self.cx_cookie.grid(row=2, column=1, sticky="w", padx=5, pady=5)
+
+        # Header
+        ttk.Label(form, text="Header customizado (User-Agent, etc):").grid(
+            row=3, column=0, sticky="w", padx=5, pady=5
+        )
+        self.cx_header = ttk.Entry(form, width=60)
+        self.cx_header.grid(row=3, column=1, sticky="w", padx=5, pady=5)
+
+        # ============================================================
+        # OPÇÕES AVANÇADAS
+        # ============================================================
+        adv = ttk.Labelframe(tab, text="Opções avançadas")
+        adv.pack(fill="x", padx=10, pady=10)
+
+        # Técnicas
+        ttk.Label(adv, text="Técnica (-technique):").grid(row=0, column=0, sticky="w", padx=5)
+        self.cx_technique = ttk.Entry(adv, width=20)
+        self.cx_technique.insert(0, "se")
+        self.cx_technique.grid(row=0, column=1, sticky="w", padx=5)
+
+        # OS command
+        self.cx_os_cmd = tk.BooleanVar()
+        ttk.Checkbutton(adv, text="OS Command Injection (-os-cmd)",
+                        variable=self.cx_os_cmd).grid(
+            row=1, column=1, sticky="w", padx=5
+        )
+
+        # OS shell
+        self.cx_os_shell = tk.BooleanVar()
+        ttk.Checkbutton(adv, text="OS Interactive Shell (-os-shell)",
+                        variable=self.cx_os_shell).grid(
+            row=2, column=1, sticky="w", padx=5
+        )
+
+        # Output JSON
+        self.cx_json = tk.BooleanVar()
+        ttk.Checkbutton(adv, text="Salvar saída JSON (--output-json)",
+                        variable=self.cx_json).grid(
+            row=3, column=1, sticky="w", padx=5, pady=5
+        )
+
+        # Extras
+        ttk.Label(adv, text="Extras:").grid(row=4, column=0, sticky="w", padx=5, pady=5)
+        self.cx_extra = ttk.Entry(adv, width=60)
+        self.cx_extra.grid(row=4, column=1, sticky="w", padx=5, pady=5)
+
+        # ============================================================
+        # OUTPUT
+        # ============================================================
+        self.cx_output = tk.Text(tab, wrap="word", height=22)
+        self.cx_output.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # ============================================================
+        # BOTÕES
+        # ============================================================
+        btns = ttk.Frame(tab)
+        btns.pack(fill="x", pady=10)
+
+        ttk.Button(btns, text="Gerar Comando", bootstyle="secondary",
+                   command=self.cx_generate).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Executar", bootstyle="success",
+                   command=self.cx_execute).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Cancelar", bootstyle="danger",
+                   command=self.cancel_process).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Limpar", bootstyle="info",
+                   command=lambda: self.cx_output.delete("1.0", "end")).pack(side="left", padx=5)
+
+
+    # ============================================================
+    # FUNÇÕES — COMMIX
+    # ============================================================
+    def cx_generate(self):
+        self.cx_output.delete("1.0", "end")
+        try:
+            cmd = self.build_commix_command()
+            pretty = " ".join(shlex.quote(c) for c in cmd)
+            self.cx_output.insert("end", pretty + "\n")
+        except Exception as e:
+            self.cx_output.insert("end", f"[ERRO] {e}\n")
+
+
+    def build_commix_command(self):
+        url = sanitize(self.cx_url.get())
+        data = sanitize(self.cx_data.get())
+        cookie = sanitize(self.cx_cookie.get())
+        header = sanitize(self.cx_header.get())
+        technique = sanitize(self.cx_technique.get())
+        extra = sanitize(self.cx_extra.get())
+
+        if not valid_url(url):
+            raise ValueError("URL inválida.")
+
+        cmd = ["commix", "--batch", "--url", url]
+
+        if data:
+            cmd += ["--data", data]
+
+        if cookie:
+            cmd += ["--cookie", cookie]
+
+        if header:
+            cmd += ["--headers", header]
+
+        if technique:
+            cmd += ["--technique", technique]
+
+        if self.cx_os_cmd.get():
+            cmd.append("--os-cmd")
+
+        if self.cx_os_shell.get():
+            cmd.append("--os-shell")
+
+        if self.cx_json.get():
+            cmd += ["--output-json", "/work/output/commix.json"]
+
+        if extra:
+            cmd += shlex.split(extra)
+
+        return cmd
+
+
+    def cx_execute(self):
+        self.cx_output.delete("1.0", "end")
+
+        try:
+            cmd = self.build_commix_command()
+        except Exception as e:
+            self.cx_output.insert("end", f"[ERRO] {e}\n")
+            return
+
+        self.run_docker("pentester", cmd, self.cx_output)
+
+    # ============================================================
+    # =========================  ABA NETCAT  =======================
+    # ============================================================
+    def build_netcat_tab(self):
+        tab = self.tabs["Netcat"]
+
+        # ============================================================
+        # FORMULÁRIO PRINCIPAL
+        # ============================================================
+        form = ttk.Labelframe(tab, text="Configuração do Netcat")
+        form.pack(fill="x", padx=10, pady=10)
+
+        ttk.Label(form, text="Modo:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        self.nc_mode = ttk.Combobox(
+            form, state="readonly", width=40,
+            values=[
+                "Conectar (cliente) → nc <host> <porta>",
+                "Escutar (servidor) → nc -lvnp <porta>",
+                "Banner Grab → echo '' | nc <host> <porta>",
+                "Enviar arquivo → nc <host> <porta> < arquivo",
+                "Receber arquivo → nc -lvnp <porta> > arquivo",
+                "Raw Command (avançado)"
+            ]
+        )
+        self.nc_mode.grid(row=0, column=1, sticky="w", padx=5)
+        self.nc_mode.current(0)
+
+        # Host
+        ttk.Label(form, text="Host (opcional):").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        self.nc_host = ttk.Entry(form, width=40)
+        self.nc_host.grid(row=1, column=1, sticky="w", padx=5)
+
+        # Porta
+        ttk.Label(form, text="Porta:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
+        self.nc_port = ttk.Entry(form, width=15)
+        self.nc_port.grid(row=2, column=1, sticky="w", padx=5)
+
+        # Arquivo
+        ttk.Label(form, text="Arquivo (transferência):").grid(row=3, column=0, sticky="w", padx=5, pady=5)
+        self.nc_file = ttk.Entry(form, width=40)
+        self.nc_file.grid(row=3, column=1, sticky="w", padx=5)
+        ttk.Button(form, text="Selecionar", bootstyle="info",
+                   command=self.select_file_netcat).grid(
+            row=3, column=2, padx=5
+        )
+
+        # Raw command
+        ttk.Label(form, text="Raw Netcat Command:").grid(row=4, column=0, sticky="w", padx=5, pady=5)
+        self.nc_raw = ttk.Entry(form, width=60)
+        self.nc_raw.grid(row=4, column=1, sticky="w", padx=5)
+
+        # ============================================================
+        # OUTPUT
+        # ============================================================
+        self.nc_output = tk.Text(tab, wrap="word", height=22)
+        self.nc_output.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # ============================================================
+        # BOTÕES
+        # ============================================================
+        btns = ttk.Frame(tab)
+        btns.pack(fill="x", pady=10)
+
+        ttk.Button(btns, text="Gerar Comando", bootstyle="secondary",
+                   command=self.nc_generate).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Executar", bootstyle="success",
+                   command=self.nc_execute).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Cancelar", bootstyle="danger",
+                   command=self.cancel_process).pack(side="left", padx=5)
+
+        ttk.Button(btns, text="Limpar", bootstyle="info",
+                   command=lambda: self.nc_output.delete("1.0", "end")).pack(side="left", padx=5)
+
+
+    # ============================================================
+    # FUNÇÕES — NETCAT
+    # ============================================================
+    def select_file_netcat(self):
+        p = filedialog.askopenfilename(initialdir="./work")
+        if p:
+            self.nc_file.delete(0, "end")
+            self.nc_file.insert(0, p)
+
+    def nc_generate(self):
+        self.nc_output.delete("1.0", "end")
+        try:
+            cmd = self.build_nc_command()
+            pretty = " ".join(shlex.quote(x) for x in cmd)
+            self.nc_output.insert("end", pretty + "\n")
+        except Exception as e:
+            self.nc_output.insert("end", f"[ERRO] {e}\n")
+
+    def build_nc_command(self):
+        mode = self.nc_mode.get()
+        host = sanitize(self.nc_host.get())
+        port = sanitize(self.nc_port.get())
+        file = sanitize(self.nc_file.get())
+        raw = sanitize(self.nc_raw.get())
+
+        # RAW COMMAND
+        if mode == "Raw Command (avançado)":
+            if not raw:
+                raise ValueError("Digite um comando nc completo.")
+            return ["bash", "-c", raw]
+
+        # VALIDAÇÃO DE PORTA
+        if not port.isdigit():
+            raise ValueError("Porta inválida.")
+
+        cmd = []
+
+        # ===== CONNECT =====
+        if mode.startswith("Conectar"):
+            if not valid_url(host):
+                raise ValueError("Host inválido.")
+            cmd = ["nc", host, port]
+
+        # ===== LISTENER =====
+        elif mode.startswith("Escutar"):
+            cmd = ["nc", "-lvnp", port]
+
+        # ===== BANNER GRAB =====
+        elif mode.startswith("Banner"):
+            if not valid_url(host):
+                raise ValueError("Host inválido.")
+            cmd = ["bash", "-c", f"echo '' | nc {host} {port}"]
+
+        # ===== SEND FILE =====
+        elif mode.startswith("Enviar"):
+            if not valid_url(host):
+                raise ValueError("Host inválido.")
+            if not os.path.exists(file):
+                raise ValueError("Arquivo não encontrado.")
+            cmd = ["bash", "-c", f"nc {host} {port} < '{file}'"]
+
+        # ===== RECEIVE FILE =====
+        elif mode.startswith("Receber"):
+            if not os.path.exists(file):
+                # Criar arquivo vazio
+                open(file, "w").close()
+            cmd = ["bash", "-c", f"nc -lvnp {port} > '{file}'"]
+
+        return cmd
+
+    def nc_execute(self):
+        self.nc_output.delete("1.0", "end")
+
+        try:
+            cmd = self.build_nc_command()
+        except Exception as e:
+            self.nc_output.insert("end", f"[ERRO] {e}\n")
+            return
+
+        self.run_docker("pentester", cmd, self.nc_output)
+
+    # ============================================================
+    # ===============   FUNÇÕES AUXILIARES FINAIS   ===============
+    # ============================================================
+
+    def show_error(self, msg, widget=None):
+        """
+        Exibe erro e opcionalmente foca em um widget.
+        """
+        messagebox.showerror("Erro", msg)
+        if widget:
+            widget.focus()
+
+    def safe_insert(self, widget, text):
+        """
+        Insere texto num widget de saída de forma segura.
+        """
+        widget.insert("end", text + "\n")
+        widget.see("end")
+
+    def clear_widget(self, widget):
+        """
+        Limpa um widget de texto.
+        """
+        widget.delete("1.0", "end")
+
+    def run_background(self, func, *args):
+        """
+        Roda uma função em thread separada (caso precise no futuro).
+        """
+        th = threading.Thread(target=func, args=args, daemon=True)
+        th.start()
+# ============================================================
+# ==========================   MAIN   =========================
+# ============================================================
+
+if __name__ == "__main__":
+    app = PentesterApp()
+    app.mainloop()

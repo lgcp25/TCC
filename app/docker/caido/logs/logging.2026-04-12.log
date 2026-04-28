@@ -1,0 +1,65 @@
+2026-04-12T15:01:30.130026Z  INFO main proxy|main:   ____      _     _
+2026-04-12T15:01:30.130106Z  INFO main proxy|main:  / ___|__ _(_) __| | ___
+2026-04-12T15:01:30.130122Z  INFO main proxy|main: | |   / _` | |/ _` |/ _ \
+2026-04-12T15:01:30.130135Z  INFO main proxy|main: | |__| (_| | | (_| | (_) |
+2026-04-12T15:01:30.130147Z  INFO main proxy|main:  \____\__,_|_|\__,_|\___/
+2026-04-12T15:01:30.130157Z  INFO main proxy|main: 
+2026-04-12T15:01:30.153317Z  INFO main service|config: Data directory: /data
+2026-04-12T15:01:30.178099Z  INFO main database|config: Creating configuration connection pool
+2026-04-12T15:01:30.185386Z  INFO main database|config: Upgrading configuration
+2026-04-12T15:01:30.380941Z  INFO main database: Running migration: 2022-08-31-133310_rust_template
+2026-04-12T15:01:30.384740Z  INFO main database: Running migration: 2022-08-31-195302_config_entries
+2026-04-12T15:01:30.388767Z  INFO main database: Running migration: 2022-09-01-191053_secrets
+2026-04-12T15:01:30.426724Z  INFO main database: Running migration: 2022-09-01-200615_projects
+2026-04-12T15:01:30.472042Z  INFO main database: Running migration: 2022-09-14-142704_config_migration
+2026-04-12T15:01:30.474508Z  WARN main proxy_config::migrations::migration_2022_09_14_142704_config_migration::helpers: Unable to read api.yml, skipping
+2026-04-12T15:01:30.474569Z  WARN main proxy_config::migrations::migration_2022_09_14_142704_config_migration::helpers: Unable to read license.yml, skipping
+2026-04-12T15:01:30.475419Z  WARN main proxy_config::migrations::migration_2022_09_14_142704_config_migration::helpers: Unable to read ca.cert, skipping
+2026-04-12T15:01:30.475462Z  WARN main proxy_config::migrations::migration_2022_09_14_142704_config_migration: Unable to delete config directory, skipping
+2026-04-12T15:01:30.475500Z  WARN main proxy_config::migrations::migration_2022_09_14_142704_config_migration: Unable to delete keys directory, skipping
+2026-04-12T15:01:30.478785Z  INFO main database: Running migration: 2022-09-14-163410_projects_migration
+2026-04-12T15:01:30.478927Z  WARN main proxy_config::migrations::migration_2022_09_14_163410_projects_migration::helpers: Unable to read index.yml, skipping
+2026-04-12T15:01:30.483518Z  INFO main database: Running migration: 2022-09-28-235431_users
+2026-04-12T15:01:30.488842Z  INFO main database: Running migration: 2022-10-26-135823_user_settings
+2026-04-12T15:01:30.493721Z  INFO main database: Running migration: 2022-11-02-175303_hosted_files
+2026-04-12T15:01:30.503357Z  INFO main database: Running migration: 2023-02-20-195502_browser_version
+2026-04-12T15:01:30.506028Z  INFO main database: Running migration: 2023-08-01-174052_backups
+2026-04-12T15:01:30.511814Z  INFO main database: Running migration: 2023-08-03-193540_fix_datetime
+2026-04-12T15:01:30.514153Z  INFO main database: Running migration: 2023-08-04-141115_project_status
+2026-04-12T15:01:30.521396Z  INFO main database: Running migration: 2023-12-06-145618_upstream_proxies
+2026-04-12T15:01:30.526617Z  INFO main database: Running migration: 2024-04-01-213849_workflows
+2026-04-12T15:01:30.530962Z  INFO main database: Running migration: 2024-04-02-161223_seed_migrations
+2026-04-12T15:01:30.537832Z  INFO main database: Running migration: 2024-04-19-153931_plugins
+2026-04-12T15:01:30.584252Z  INFO main database: Running migration: 2024-06-20-142458_plugins_instance
+2026-04-12T15:01:30.589923Z  INFO main database: Running migration: 2024-09-18-134909_upstream_proxies_socks
+2026-04-12T15:01:30.593608Z  INFO main database: Running migration: 2024-09-23-190012_plugins_workflow
+2026-04-12T15:01:30.601976Z  INFO main database: Running migration: 2025-01-10-155500_project_opened_at
+2026-04-12T15:01:30.606674Z  INFO main database: Running migration: 2025-01-30-122200_plugins_link
+2026-04-12T15:01:30.611596Z  INFO main database: Running migration: 2025-02-24-181051_dns_config
+2026-04-12T15:01:30.617234Z  INFO main database: Running migration: 2025-04-14-235634_temporary_project
+2026-04-12T15:01:30.623293Z  INFO main database: Running vacuum: main
+2026-04-12T15:01:30.640647Z  INFO main database: Running vacuum: projects
+2026-04-12T15:01:30.652343Z  INFO main database: Running vacuum: secrets
+2026-04-12T15:01:30.663887Z  INFO main database|seed: Running seed: 2024-04-01-105754_workflows
+2026-04-12T15:01:30.684101Z  INFO main database|seed: Running seed: 2025-02-24-181051_dns_config
+2026-04-12T15:01:30.687839Z  INFO main database|seed: Running seed: 2025-07-23-135220_color_navigation
+2026-04-12T15:01:30.700791Z  INFO main proxy|logging: Starting streaming controller
+2026-04-12T15:01:30.790184Z  INFO main service|config: Generating signature secret
+2026-04-12T15:01:30.828788Z  INFO main service|config: Generating encryption secret
+2026-04-12T15:01:30.838671Z  INFO main service|config: Generating token secret
+2026-04-12T15:01:31.558812Z  INFO main service|oauth: Registering client to caido cloud
+2026-04-12T15:01:31.608481Z  INFO main service|downstream: Generating CA key & certificate
+2026-04-12T15:01:31.695835Z  INFO main service|downstream: Generating server key
+2026-04-12T15:01:32.056929Z  INFO main service|upstream: Loading upstream proxies
+2026-04-12T15:01:32.407498Z  INFO main service|plugin: Starting all backend plugins
+2026-04-12T15:01:32.540465Z  INFO main service|plugin: Started 0 plugins
+2026-04-12T15:01:32.609677Z  INFO main proxy|main: Listening on 0.0.0.0:8080 (Proxy, UI)
+2026-04-12T15:01:32.637467Z  INFO main actix_server::builder: starting 4 workers
+2026-04-12T15:01:32.637545Z  INFO main actix_server::server: Actix runtime found; starting in Actix runtime
+2026-04-12T15:01:32.637563Z  INFO main actix_server::server: starting service: "dispatcher-service-0.0.0.0:8080", workers: 4, listening on: 0.0.0.0:8080
+2026-04-12T15:01:33.278494Z  INFO main worker|user: Client: 01KP13CNCWVD0D0XZ1F4B7YXWS
+2026-04-12T15:01:34.749450Z  INFO main service|cloud: Connected to the caido cloud
+2026-04-12T15:01:34.753587Z  INFO main service|sync: Starting sync
+2026-04-12T15:01:35.686050Z  INFO main service|sync: Sync client started
+2026-04-12T15:01:35.921652Z  INFO main sync|client: OAuth2 Client subscribed
+2026-04-12T19:14:44.527430Z ERROR main sync|transport: Transport failed: Websocket(Io(Custom { kind: UnexpectedEof, error: "peer closed connection without sending TLS close_notify: https://docs.rs/rustls/latest/rustls/manual/_03_howto/index.html#unexpected-eof" }))
