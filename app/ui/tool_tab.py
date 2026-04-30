@@ -132,8 +132,7 @@ class ToolTab:
         from services.ai_service import ai_service
         await self.clear_ai()
         self.app.set_loading("IA explicando comando...")
-        prompt = f"Explique: `{self.last_command}`. Use Markdown."
-        ans = await ai_service.analyze_results("Explicação", prompt, command=self.last_command)
+        ans = await ai_service.explain_command(self.last_command)
         await self.write_ai(ans)
         self.app.set_loading("", False)
 
@@ -141,7 +140,7 @@ class ToolTab:
         from services.ai_service import ai_service
         await self.clear_ai()
         self.app.set_loading("IA buscando dicas...")
-        ans = await ai_service.get_tool_tips(self.name, self.phase, logs=self.terminal_buffer)
+        ans = await ai_service.get_tool_tips(self.name, self.phase, command=self.last_command, logs=self.terminal_buffer)
         await self.write_ai(ans)
         self.app.set_loading("", False)
 
@@ -149,7 +148,7 @@ class ToolTab:
         if not self.terminal_buffer.strip(): return self.show_popup("Aviso", "Nada para adicionar.")
         from services.ai_service import ai_service
         self.app.set_loading("Formatando descoberta...")
-        analysis = await ai_service.generate_formal_report(self.name, self.terminal_buffer)
+        analysis = await ai_service.generate_formal_report(self.name, self.terminal_buffer, command=self.last_command)
         self.app.report_findings.append({"tool": self.name, "analysis": analysis, "command": self.last_command})
         self.app.set_loading("", False)
         self.show_popup("Sucesso", "Achado adicionado ao relatório.")

@@ -1,7 +1,11 @@
 import flet as ft
+import logging
 from controller import PentesterApp
 
+logging.basicConfig(level=logging.INFO, format="%(name)s | %(message)s")
+
 async def main(page: ft.Page):
+    page.window.maximized = True
     app = PentesterApp(page)
     await app.initialize()
 
