@@ -67,7 +67,7 @@ def _init_dvwa_sync():
             }
             session.post(sec_url, data=sec_data)
             
-        logger.info("✅ DVWA pronto para Pentest!")
+        logger.info("DVWA pronto para Pentest!")
         
         # Retorna os cookies necessários para as outras ferramentas
         cookies = session.cookies.get_dict()
@@ -77,10 +77,10 @@ def _init_dvwa_sync():
         }
         
     except requests.exceptions.ConnectionError:
-        logger.error("❌ Não foi possível conectar ao DVWA. O Docker está rodando?")
+        logger.error("Não foi possível conectar ao DVWA. O Docker está rodando?")
         return None
     except Exception as e:
-        logger.error(f"❌ Erro ao configurar DVWA: {e}")
+        logger.error(f"Erro ao configurar DVWA: {e}")
         return None
 
 async def wait_and_init_dvwa():

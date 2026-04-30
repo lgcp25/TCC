@@ -3,7 +3,7 @@ import json
 import hashlib
 import logging
 from groq import AsyncGroq
-from config import CACHE_FILE, AI_MODEL, AI_TEMPERATURE, TEACHER_TONE
+from config import CACHE_FILE, AI_MODEL, AI_TEMPERATURE, TEACHER_JAMERSON
 
 logger = logging.getLogger(__name__)
 
@@ -42,13 +42,13 @@ class AIContext:
 
     async def _ask_ai(self, system_prompt, user_content, max_tokens=1000, cache_key=None):
         if not self.api_key:
-            return "⚠️ GROQ_API_KEY não configurada."
+            return "GROQ_API_KEY não configurada."
 
         if cache_key and cache_key in self.cache:
-            logger.info(f"✅ Cache HIT: {cache_key[:16]}…")
+            logger.info(f"Cache HIT: {cache_key[:16]}…")
             return self.cache[cache_key]
 
-        logger.info(f"❌ Cache MISS: {cache_key[:16] if cache_key else 'sem-key'}… — chamando API")
+        logger.info(f"Cache MISS: {cache_key[:16] if cache_key else 'sem-key'}… — chamando API")
         try:
             client = AsyncGroq(api_key=self.api_key)
             completion = await client.chat.completions.create(
@@ -68,10 +68,10 @@ class AIContext:
                     oldest_key = next(iter(self.cache))
                     del self.cache[oldest_key]
                 self._save_cache()
-                logger.info(f"💾 Cache SAVE: {cache_key[:16]}…")
+                logger.info(f"Cache SAVE: {cache_key[:16]}…")
             return result
         except Exception as e:
-            return f"❌ Erro na IA: {e}"
+            return f"Erro na IA: {e}"
 
     # ─── BOTÃO: Explicar Resultado ───────────────────────────────────────
     async def analyze_results(self, tool, logs, command=""):
@@ -82,7 +82,7 @@ class AIContext:
         
         if self._is_low_value_result(logs):
             system = (
-                f"{TEACHER_TONE}\n"
+                f"{TEACHER_JAMERSON}\n"
                 "Os resultados mostram pouco ou nenhum progresso (portas fechadas/timeout). "
                 "Explique por que isso pode estar acontecendo (firewall, alvo offline) "
                 "e sugira 2 alternativas técnicas para tentar contornar. Seja breve."
@@ -90,7 +90,7 @@ class AIContext:
             max_t = 400
         else:
             system = (
-                f"{TEACHER_TONE}\n"
+                f"{TEACHER_JAMERSON}\n"
                 "Você é um analista de segurança sênior. Sua tarefa é analisar logs de pentest.\n"
                 "OBJETIVO: Identifique exatamente o que a ferramenta ENCONTROU ou EXTRAIU.\n\n"
                 "REGRAS CRÍTICAS:\n"
@@ -123,7 +123,7 @@ class AIContext:
             return "Nenhum comando para explicar."
         h = self._make_key("explain_cmd", command)
         system = (
-            f"{TEACHER_TONE}\n"
+            f"{TEACHER_JAMERSON}\n"
             "Liste cada flag/parâmetro do comando com uma explicação de 1 linha. "
             "Formato: `flag` — o que faz. Sem introdução nem conclusão."
         )
@@ -134,7 +134,7 @@ class AIContext:
     async def get_tool_tips(self, tool, phase, command="", logs=""):
         h = self._make_key("tips", f"{tool}:{command}", logs)
         system = (
-            f"{TEACHER_TONE}\n"
+            f"{TEACHER_JAMERSON}\n"
             "Sugira exatamente 3 próximos passos lógicos para o aluno seguir no pentest. "
             "Para cada passo, dê o comando exato e uma justificativa curta (1 linha). "
             "Não repita o que já foi feito. Seja objetivo."
@@ -146,9 +146,15 @@ class AIContext:
     async def generate_formal_report(self, tool, logs, command=""):
         h = self._make_key("report", f"{tool}:{command}", logs)
         system = (
-            f"{TEACHER_TONE}\n"
-            "Crie uma análise técnica formal para relatório de pentest. "
-            "Inclua: Resumo, Vulnerabilidades, Impacto e Mitigação."
+            f"{TEACHER_JAMERSON}\n"
+            "Crie uma análise técnica formal e OBJETIVA para relatório de pentest.\n"
+            "REGRAS:\n"
+            "1. DADOS EXTRAÍDOS: Se os logs contêm nomes de bancos de dados, tabelas, colunas, "
+            "usuários ou senhas, liste-os EXPLICITAMENTE em uma seção dedicada.\n"
+            "2. RESULTADO CONCRETO: Diga exatamente o que a ferramenta conseguiu fazer "
+            "(ex: 'O SQLmap confirmou injeção SQL do tipo UNION no parâmetro id e extraiu 5 bancos de dados').\n"
+            "3. Estruture em: Resumo (2 linhas), Dados Extraídos (lista), Vulnerabilidade, Impacto e Mitigação.\n"
+            "4. NÃO seja genérico. NÃO explique o que é SQL Injection em geral. Foque nos RESULTADOS reais."
         )
         return await self._ask_ai(system, f"Comando: {command}\nLogs da ferramenta {tool}:\n{logs}", max_tokens=2000, cache_key=h)
 

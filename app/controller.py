@@ -4,15 +4,10 @@ import asyncio
 import subprocess
 import logging
 from config import THEME_BG, THEME_CARD, THEME_BORDER, DOCKER_DIR
-from ui.nmap_tab import NmapTab
-from ui.sqlmap_tab import SqlmapTab
-from ui.nuclei_tab import NucleiTab
-from ui.nikto_tab import NiktoTab
-from ui.gobuster_tab import GobusterTab
-from ui.dirsearch_tab import DirsearchTab
-from ui.commix_tab import CommixTab
-from ui.netcat_tab import NetcatTab
-from ui.metasploit_tab import MetasploitTab
+from ui.tabs import (
+    NmapTab, SqlmapTab, NucleiTab, NiktoTab, GobusterTab, 
+    DirsearchTab, CommixTab, NetcatTab, MetasploitTab
+)
 from services.docker_runner import run_docker, cancel_process
 
 logger = logging.getLogger(__name__)
@@ -20,82 +15,38 @@ logger = logging.getLogger(__name__)
 class PentesterApp:
     def __init__(self, page: ft.Page):
         self.page = page
-        self.page.title = "Pentester Suite — Ultimate Edition"
+        self.page.title = "Vaporeon - Pentester Suite"
         self.page.theme_mode = ft.ThemeMode.DARK
         self.page.bgcolor = THEME_BG
         self.page.padding = 0
+        # Tenta maximizar a janela, se não conseguir não mostra erro
         try: self.page.window_maximized = True
         except: pass
         
+        # Configura a fonte
         self.page.fonts = {
             "RobotoMono": "https://github.com/google/fonts/raw/main/apache/robotomono/RobotoMono%5Bwght%5D.ttf"
         }
         
+        # Lista de resultados para incluir no relatório final
         self.report_findings = []
+        # Dicionário para guardar as instâncias das abas das ferramentas
         self.tools = {}
+        # Monitoramento de serviços
         self._monitoring = True
+        # Botão ativo
         self._active_tool_btn = None
+        # Cookies do DVWA para autenticação automática, no formato 'key=value; key=value'
         self.dvwa_cookies = {}
 
+    # Método de inicialização da aplicação
     async def initialize(self):
-        # Loader e Status
-        self.loader = ft.ProgressBar(width=200, color="amber", visible=False)
-        self.status_text = ft.Text("", size=11, italic=True, color="amber")
+        from ui.header import HeaderPanel
+        
+        # Cria a barra de ferramentas a partir do novo componente
+        self.tab_header = HeaderPanel(self)
 
-        # Indicadores de Serviços
-        self.svc_pentester = ft.Icon(ft.Icons.CIRCLE, color="red", size=10)
-        self.svc_dvwa = ft.Icon(ft.Icons.CIRCLE, color="red", size=10)
-        self.svc_metasploit = ft.Icon(ft.Icons.CIRCLE, color="red", size=10)
-        self.svc_groq = ft.Icon(ft.Icons.CIRCLE, color="red", size=10)
-
-        services_panel = ft.Row([
-            ft.Row([self.svc_pentester, ft.Text("Pentester", size=10, color="blueGrey300")], spacing=4),
-            ft.Row([self.svc_dvwa, ft.Text("DVWA", size=10, color="blueGrey300")], spacing=4),
-            ft.Row([self.svc_metasploit, ft.Text("Metasploit", size=10, color="blueGrey300")], spacing=4),
-            ft.Row([self.svc_groq, ft.Text("Groq API", size=10, color="blueGrey300")], spacing=4),
-        ], spacing=15)
-
-        # Botões de navegação das ferramentas
-        self.tool_buttons = {}
-        tool_names = ["Nmap", "SQLmap", "Nuclei", "Nikto", "Gobuster", "Dirsearch", "Commix", "Metasploit", "Netcat"]
-        tool_keys  = ["Nmap", "Sqlmap", "Nuclei", "Nikto", "Gobuster", "Dirsearch", "Commix", "Metasploit", "Netcat"]
-
-        tool_nav_row = ft.Row(spacing=5)
-        for display_name, key in zip(tool_names, tool_keys):
-            btn = ft.TextButton(
-                display_name,
-                on_click=lambda _, k=key: self.switch_tool(k),
-                style=ft.ButtonStyle(color="white")
-            )
-            self.tool_buttons[key] = btn
-            tool_nav_row.controls.append(btn)
-
-        dvwa_link = ft.Row([
-            ft.Icon(ft.Icons.WARNING_AMBER, color="amber", size=14),
-            ft.Text("Alvo de Teste (DVWA):", size=12, color="blueGrey200"),
-            ft.Text("", size=12, color="blue400", weight="bold", 
-                    spans=[ft.TextSpan(" http://localhost:8081", url="http://localhost:8081")]),
-            ft.Text("(Usuário: admin | Senha: password)", size=11, color="blueGrey400", italic=True)
-        ], spacing=5)
-
-        self.tab_header = ft.Container(
-            content=ft.Row([
-                tool_nav_row,
-                ft.Column([
-                    ft.Text("Pentester Suite — Ultimate Edition", size=14, weight="bold", color="blueGrey200"),
-                    dvwa_link
-                ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=2),
-                ft.Column([
-                    services_panel,
-                    ft.Row([self.status_text, self.loader], spacing=10),
-                ], spacing=2, horizontal_alignment=ft.CrossAxisAlignment.END)
-            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            padding=ft.padding.symmetric(horizontal=20, vertical=5),
-            bgcolor=THEME_CARD,
-            border=ft.border.only(bottom=ft.border.BorderSide(1, THEME_BORDER))
-        )
-
-        # Ferramentas
+        # Instâncias das abas das ferramentas
         self.nmap_tab = NmapTab(self, "Nmap")
         self.sqlmap_tab = SqlmapTab(self, "Sqlmap")
         self.nuclei_tab = NucleiTab(self, "Nuclei")
@@ -106,6 +57,7 @@ class PentesterApp:
         self.netcat_tab = NetcatTab(self, "Netcat")
         self.metasploit_tab = MetasploitTab(self, "Metasploit")
 
+        # Dicionário para guardar as instâncias das abas das ferramentas para manter o histórico de scans
         self.tools = {
             "Nmap": self.nmap_tab,
             "Sqlmap": self.sqlmap_tab,
@@ -117,8 +69,10 @@ class PentesterApp:
             "Netcat": self.netcat_tab,
             "Metasploit": self.metasploit_tab,
         }
+        # Área de conteúdo principal - começa com a aba do Nmap
         self.content_area = ft.Container(content=self.nmap_tab.view, expand=True)
 
+        # Adiciona todo o conteúdo à página
         self.page.add(
             ft.Column([
                 self.tab_header,
@@ -126,10 +80,13 @@ class PentesterApp:
             ], expand=True, spacing=0)
         )
 
-        # Sobe o Docker
+        # Carrega barra de progresso inicial - self.loader
         self.set_loading("Iniciando Infraestrutura Docker...", True)
+
+        # Sobe o Docker-compose e inicia o DVWA
         try:
             try: subprocess.Popen(["docker-compose", "up", "-d"], cwd=DOCKER_DIR)
+            # Tenta novamente com "docker" em vez de "docker-compose"
             except Exception: subprocess.Popen(["docker", "compose", "up", "-d"], cwd=DOCKER_DIR)
             
             # Dispara auto-setup do DVWA no background (login e cria banco)
@@ -150,8 +107,8 @@ class PentesterApp:
         # Inicia monitoramento em background
         asyncio.ensure_future(self._monitor_services())
 
+    # Monitora os serviços em background verifica o status dos containers a cada 10 segundos
     async def _monitor_services(self):
-        """Verifica o status dos containers e da API a cada 10 segundos."""
         while self._monitoring:
             try:
                 # Checar containers Docker
@@ -161,38 +118,44 @@ class PentesterApp:
                 )
                 running = result.stdout.lower() if result.returncode == 0 else ""
                 
-                self.svc_pentester.color = "green" if "pentester" in running else "red"
-                self.svc_dvwa.color = "green" if "dvwa" in running else "red"
-                self.svc_metasploit.color = "green" if "metasploit" in running else "red"
+                self.tab_header.svc_pentester.color = "green" if "pentester" in running else "red"
+                self.tab_header.svc_dvwa.color = "green" if "dvwa" in running else "red"
+                self.tab_header.svc_metasploit.color = "green" if "metasploit" in running else "red"
                 
                 # Checar Groq API (verifica se a chave existe)
                 groq_key = os.getenv("GROQ_API_KEY", "")
-                self.svc_groq.color = "green" if groq_key else "red"
+                self.tab_header.svc_groq.color = "green" if groq_key else "red"
 
-                self.svc_pentester.update()
-                self.svc_dvwa.update()
-                self.svc_groq.update()
+                self.tab_header.svc_pentester.update()
+                self.tab_header.svc_dvwa.update()
+                self.tab_header.svc_groq.update()
+
+            # Se der erro, ignora e continua    
             except:
                 pass
-            
+            # Espera 10 segundos antes de verificar novamente impede o app de travar
             await asyncio.sleep(10)
 
+    # Método que alterna o painel conforme o botão clicado pelo usuário
     def switch_tool(self, tool_name):
         if tool_name in self.tools:
             self.content_area.content = self.tools[tool_name].view
             self.content_area.update()
 
+    # Método que exibe uma mensagem do status e uma barra de progresso
     def set_loading(self, status, visible=True):
-        self.status_text.value = status
-        self.loader.visible = visible
-        self.status_text.update()
-        self.loader.update()
+        self.tab_header.status_text.value = status
+        self.tab_header.loader.visible = visible
+        self.tab_header.status_text.update()
+        self.tab_header.loader.update()
 
+    # Método que executa o comando no container
     async def run_docker(self, container, cmd, on_output, tab=None):
         self.set_loading("Scanner em execução...")
         await run_docker(tab or self, container, cmd, on_output)
         self.set_loading("", False)
 
+    # Método que cancela o comando no container
     def cancel_process(self, on_output=None, tab=None):
         cancel_process(tab or self, on_output)
         self.set_loading("Interrompido", False)

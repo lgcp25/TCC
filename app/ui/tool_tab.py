@@ -16,14 +16,14 @@ class ToolTab:
         self.help_text = help_text
         self.last_command = ""
 
-        # ESTILO DOS TÍTULOS (Aumentado e Estilizado)
+        # Estilos dos títulos
         self.TEXT_TITLE = ft.TextStyle(
             size=14, 
             weight="bold", 
             color="white",
         )
         
-        # Terminal (Fonte Aumentada para 13px)
+        # Terminal
         self.terminal_output = ft.ListView(expand=True, spacing=0, auto_scroll=True)
         self.terminal_container = ft.Container(
             content=self.terminal_output, 
@@ -46,10 +46,10 @@ class ToolTab:
             border=ft.border.all(1, THEME_BORDER)
         )
 
-        self.left_col = ft.Column(spacing=20, scroll=ft.ScrollMode.ALWAYS)
+        # Coluna da esquerda (configurações)
+        self.left_col = ft.Column(spacing=20, scroll=ft.ScrollMode.AUTO, expand=True)
         
-        # Header
-        # Campos Base para Comando Manual
+        # Campos base para comando manual
         self.free_cmd_switch = ft.Switch(
             label="Modo Comando Manual", 
             value=False, 
@@ -61,8 +61,11 @@ class ToolTab:
             disabled=True,
             **INPUT_STYLE
         )
+
+        # Callback para ligar/desligar modo manual
         self.free_cmd_switch.on_change = self._toggle_free_mode_base
 
+        # Cabeçalho
         self.header = ft.Row([
             ft.Column([
                 ft.Row([ft.Icon(icon, color="blue400", size=32), ft.Text(f"{name} - Tool", size=30, weight="bold", color="white")]),
@@ -106,7 +109,7 @@ class ToolTab:
                         content=ft.Column([
                             ft.Container(content=ft.Row([ft.Container(width=5, height=15, bgcolor="blue400"), ft.Text("CONFIGURAÇÃO", style=self.TEXT_TITLE)]), padding=ft.padding.only(bottom=10)),
                             self.left_col,
-                            ft.Container(expand=True),
+
                             ft.OutlinedButton("Limpar Campos", icon=ft.Icons.DELETE_OUTLINE, on_click=lambda _: self.reset_fields() if hasattr(self, 'reset_fields') else None, width=float("inf"), style=ft.ButtonStyle(color="blueGrey200"))
                         ], expand=True),
                         width=300, bgcolor=THEME_CARD, padding=20, border_radius=10, border=ft.border.all(1, THEME_BORDER)
@@ -147,6 +150,7 @@ class ToolTab:
             padding=20, bgcolor=THEME_BG
         )
 
+
     def _toggle_free_mode_base(self, e):
         is_free = self.free_cmd_switch.value
         self.raw_cmd.disabled = not is_free
@@ -158,18 +162,20 @@ class ToolTab:
                 
         self.left_col.update()
 
+    # Método helper para as abas adicionarem o divisor e os controles manuais no fim do left_col
     def add_manual_controls(self):
-        """Método helper para as abas adicionarem o divisor e os controles manuais no fim do left_col"""
         self.left_col.controls.extend([
             ft.Divider(color=THEME_BORDER),
             self.free_cmd_switch,
             self.raw_cmd
         ])
 
+    # Abre janela para salvar relatório
     async def open_doc(self, e):
         try: subprocess.Popen(["xdg-open", self.doc_url])
         except: await self.app.page.launch_url(self.doc_url)
 
+    # Mostra ajuda no terminal
     async def show_help(self, e):
         """Exibe o guia de uso da ferramenta no terminal"""
         await self.clear_terminal()
@@ -181,6 +187,7 @@ class ToolTab:
         
         await self.write_terminal(help_header + content + "\n\n" + "-"*30 + "\n")
 
+    # Escreve na IA
     async def write_ai(self, text):
         try:
             md = ft.Markdown(text, selectable=True, extension_set=ft.MarkdownExtensionSet.GITHUB_WEB)
@@ -188,6 +195,7 @@ class ToolTab:
         except: self.ai_output.controls.append(ft.Text(text, color="blueGrey100", size=13))
         self.ai_output.update()
 
+    # Analisa resultados
     async def explain(self, e):
         if not self.terminal_buffer.strip(): return self.show_popup("Aviso", "Terminal vazio.")
         from services.ai_service import ai_service
@@ -227,18 +235,56 @@ class ToolTab:
         if not self.app.report_findings: return self.show_popup("Erro", "Relatório vazio.")
         from services.ai_service import ai_service
         from services.pdf_service import generate_pentest_pdf
+
         self.app.set_loading("Gerando Sumário...")
         summary = await ai_service.generate_executive_summary(self.app.report_findings)
-        self.app.set_loading("Criando PDF...")
+        self.app.set_loading("Preparando PDF...")
+
+        # Prepara o PDF em arquivo temporário primeiro
+        now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_name = f"Relatorio_Vaporeon_{now}.pdf"
+
         try:
             from config import DOCS_DIR
-            now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            path = os.path.join(DOCS_DIR, f"Relatorio_Vaporeon_{now}.pdf")
-            generate_pentest_pdf(self.app.report_findings, path, summary_text=summary)
-            self.app.report_findings = []
-            self.show_popup("🏆 Relatório Gerado", f"Salvo em: {os.path.basename(path)}")
-        except Exception as err: self.show_popup("Erro no PDF", str(err))
+            temp_path = os.path.join(DOCS_DIR, default_name)
+            generate_pentest_pdf(self.app.report_findings, temp_path, summary_text=summary)
+        except Exception as err:
+            self.app.set_loading("", False)
+            return self.show_popup("Erro no PDF", str(err))
+
+        # Diálogo nativo multiplataforma para o usuário escolher onde salvar
+        import shutil
+        save_path = None
+        try:
+            import tkinter as tk
+            from tkinter import filedialog
+            root = tk.Tk()
+            root.withdraw()  # Esconde a janela principal do tkinter
+            root.attributes('-topmost', True)  # Garante que o diálogo fique na frente
+            save_path = filedialog.asksaveasfilename(
+                title="Salvar Relatório de Pentest",
+                initialfile=default_name,
+                defaultextension=".pdf",
+                filetypes=[("PDF files", "*.pdf"), ("Todos os arquivos", "*.*")]
+            )
+            root.destroy()
+        except Exception:
+            pass  # Se tkinter falhar, usa o caminho padrão
+
+        if save_path:
+            if not save_path.endswith(".pdf"):
+                save_path += ".pdf"
+            if save_path != temp_path:
+                try:
+                    shutil.copy2(temp_path, save_path)
+                except Exception as err:
+                    self.app.set_loading("", False)
+                    return self.show_popup("Erro ao salvar", str(err))
+
+        final_path = save_path or temp_path
+        self.app.report_findings = []
         self.app.set_loading("", False)
+        self.show_popup("🏆 Relatório Gerado", f"Salvo em: {final_path}")
 
     def show_popup(self, title, message):
         def close_dlg(e): dlg.open = False; self.app.page.update()
@@ -283,13 +329,30 @@ class ToolTab:
         except Exception as err:
             self.show_snack("Erro ao copiar. Selecione manualmente no terminal.", "red900")
 
+    # Método que escreve no terminal, adiciona o texto ao buffer e atualiza a view do terminal
     async def write_terminal(self, text):
         self.terminal_output.controls.append(ft.Text(text, color="#2DD4BF", font_family="RobotoMono", size=13, selectable=True))
-        self.terminal_output.update(); self.terminal_buffer += text
+        self.terminal_output.update()
+        self.terminal_buffer += text
 
-    async def clear_ai(self): self.ai_output.controls.clear(); self.ai_output.update()
-    async def clear_terminal(self): self.terminal_buffer = ""; self.terminal_output.controls.clear(); self.terminal_output.update()
+    # Método que limpa o output da IA e atualiza a view da IA
+    async def clear_ai(self): 
+        self.ai_output.controls.clear() 
+        self.ai_output.update()
+
+    # Método que limpa o buffer e o output do terminal e atualiza a view do terminal
+    async def clear_terminal(self): 
+        self.terminal_buffer = "" 
+        self.terminal_output.controls.clear() 
+        self.terminal_output.update()
+    
+    # Método que cancela o processo
     async def cancel(self, e):
         self.app.cancel_process(on_output=self.write_terminal, tab=self)
+        
+    # Método que exibe uma snackbar com a mensagem e a cor informadas
     def show_snack(self, m, c):
-        sn = ft.SnackBar(ft.Text(m, color="white"), bgcolor=c); self.app.page.snack_bar = sn; sn.open = True; self.app.page.update()
+        sn = ft.SnackBar(ft.Text(m, color="white"), bgcolor=c) 
+        self.app.page.snack_bar = sn
+        sn.open = True 
+        self.app.page.update()

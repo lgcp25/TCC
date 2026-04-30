@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv
+venv
+ENV
+env
+.env
+
+# Cache e Logs
+*.log
+ai_cache.json
+
+# Relatórios e Saídas (Sensitive data)
+reports/
+*.pdf
+
+# IDEs e Sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docker (Ignorar dados persistentes se houver)
+docker/data/
+docker/db_data/
