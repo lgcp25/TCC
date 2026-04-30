@@ -3,25 +3,22 @@ __pycache__/
 *.py[cod]
 *$py.class
 .venv
-venv
-ENV
-env
 .env
 
 # Cache e Logs
 *.log
-ai_cache.json
+/ai_cache.json
 
 # Relatórios e Saídas (Sensitive data)
-reports/
+docs/
 *.pdf
 
 # IDEs e Sistema
-.vscode/
-.idea/
-.DS_Store
+/legacy
 Thumbs.db
 
 # Docker (Ignorar dados persistentes se houver)
-docker/data/
-docker/db_data/
+docker/nucleus-templates/
+docker/output/
+docker/results/
+docker/worldlists/
