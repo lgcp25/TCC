@@ -1,29 +1,46 @@
 import flet as ft
 from ui.tool_tab import ToolTab
 from tools.nmap import Nmap
+from config import INPUT_STYLE, THEME_BORDER
 import datetime
+import shlex
 
 class NmapTab(ToolTab):
     def __init__(self, app, name):
         super().__init__(
             app, 
             name, 
-            "Reconhecimento / Varredura", 
+            "Reconhecimento / Mapeamento de Rede", 
             "https://nmap.org/book/man.html",
-            ft.Icons.SEARCH,
-            ft.Icons.RADAR
+            ft.Icons.NETWORK_CHECK,
+            ft.Icons.NETWORK_CELL,
+            description="O Nmap é o Scanner de Segurança mais popular do mundo. Ele vasculha IPs, descobre portas abertas, detecta serviços rodando e identifica o sistema operacional do alvo.",
+            help_text="""GUIA TÉCNICO NMAP (Network Mapper):
+
+Esta interface abstrai as flags mais poderosas do Nmap para facilitar o uso acadêmico.
+
+1. EXPLICAÇÃO DOS CAMPOS:
+   - ALVO: Endereço IP (192.168.1.1), rede (192.168.1.0/24) ou domínio (alvo.com).
+   - PERFIL: 
+     * Scan Rápido: Usa a flag '-F', escaneando apenas as 100 portas mais comuns.
+     * Scan de Serviço: Usa '-sV', enviando pacotes específicos para cada porta aberta para determinar a versão do software.
+     * Scan de SO: Usa '-O', analisando a latência e janelas TCP para 'adivinhar' o sistema operacional.
+     * Scan Completo: Usa '-A' (Aggressive), que habilita detecção de SO, versão, scripts padrão e traceroute.
+   - ESPECIFICAR PORTAS: Habilita a flag '-p'. Se desativado, o Nmap escaneia as 1000 portas mais comuns por padrão.
+   - TIMING (Velocidade): Controla o delay entre pacotes ('-T0' a '-T5'). Recomendamos T4 para equilíbrio entre velocidade e precisão.
+   - SCRIPT SCAN: Habilita '--script=vuln', invocando o motor NSE (Nmap Scripting Engine) para buscar falhas conhecidas como CVEs.
+
+2. EXEMPLOS DE COMANDO GERADO:
+   - Básico: nmap -T4 192.168.1.1
+   - Com Versão e SO: nmap -sV -O -T4 192.168.1.1
+   - Busca de Vulnerabilidades: nmap -sV --script=vuln -T4 192.168.1.1
+
+3. DICA: 
+   O Nmap é o padrão ouro na fase de 'Footprinting'. Identificar a versão correta de um serviço é o primeiro passo para encontrar um exploit público no Exploit-DB."""
         )
         self.nmap = Nmap()
 
-        input_style = dict(
-            border_color="transparent", 
-            filled=True, 
-            bgcolor="#1F2937", 
-            text_size=12, 
-            label_style=ft.TextStyle(size=12, color=ft.Colors.BLUE_GREY_400), 
-            content_padding=10, 
-            height=40
-        )
+        input_style = INPUT_STYLE
 
         # Controles
         self.target = ft.TextField(label="IP ou domínio", value="dvwa", **input_style)
@@ -36,7 +53,8 @@ class NmapTab(ToolTab):
             if self.port.disabled:
                 self.port.value = ""
             self.port.update()
-            self.app.page.update()
+            self.raw_cmd.value = ""
+        self.app.page.update()
 
         self.port_switch.on_change = toggle_port
 
@@ -50,26 +68,6 @@ class NmapTab(ToolTab):
         )
 
 
-
-        self.free_cmd_switch = ft.Switch(
-            label="Comando Manual", 
-            value=False, 
-            active_color=ft.Colors.PURPLE_400,
-            disabled=False
-        )
-
-        def toggle_free_mode(e):
-            self.target.disabled = self.free_cmd_switch.value
-            self.port_switch.disabled = self.free_cmd_switch.value
-            self.port.disabled = self.free_cmd_switch.value or not self.port_switch.value
-            self.scan_profile.disabled = self.free_cmd_switch.value
-            self.timing.disabled = self.free_cmd_switch.value
-            self.script_scan.disabled = self.free_cmd_switch.value
-            self.free_cmd_field.disabled = not self.free_cmd_switch.value
-            self.free_cmd_field.update()
-            self.app.page.update()
-
-        self.free_cmd_switch.on_change = toggle_free_mode
 
         self.scan_profile = ft.Dropdown(
             label="Perfil de Scan",
@@ -115,7 +113,6 @@ class NmapTab(ToolTab):
             **input_style
         )
 
-        # Montagem da UI
         self.left_col.controls.extend([
             ft.Container(height=10),
             self.target,
@@ -124,9 +121,8 @@ class NmapTab(ToolTab):
             self.port,
             self.timing,
             self.script_scan,
-            self.free_cmd_switch,
-            self.free_cmd_field
         ])
+        self.add_manual_controls()
 
     def reset_fields(self):
         self.target.value = "dvwa"
@@ -137,18 +133,18 @@ class NmapTab(ToolTab):
         self.port.disabled = True
         self.scan_profile.value = "Scan portas comuns (top 1000)"
         self.scan_profile.disabled = False
-        self.timing.value = "T4 (Agressivo - Recomendado)"
         self.timing.disabled = False
         self.script_scan.value = "default"
         self.script_scan.disabled = False
         self.free_cmd_switch.value = False
-        self.free_cmd_field.value = "nmap "
-        self.free_cmd_field.disabled = True
+        self.raw_cmd.value = ""
+        self.raw_cmd.disabled = True
+        self.left_col.update()
         self.app.page.update()
 
     def get_command(self):
         if self.free_cmd_switch.value:
-            return self.free_cmd_field.value.strip()
+            return f"nmap {self.raw_cmd.value}"
 
         timing_map = {
             "T0 (Paranóico - Evasão Extrema)": "-T0",
@@ -160,7 +156,7 @@ class NmapTab(ToolTab):
         }
         script_val = self.script_scan.value.split(" ")[0]
         
-        cmd = self.nmap.build_nmap_command(
+        cmd = self.nmap.build_command(
             target=self.target.value,
             mode=self.scan_profile.value,
             port=self.port.value if self.port_switch.value else None,
@@ -177,10 +173,17 @@ class NmapTab(ToolTab):
         await self.write_terminal(f"Starting Nmap 7.94 ( https://nmap.org ) at {now} -03\n")
         
         try:
-            cmd_str = self.get_command()
-            self.last_command = cmd_str
-            await self.write_terminal(f"[COMANDO] {cmd_str}\n\n")
-            cmd_list = cmd_str.split(" ")
-            await self.app.run_docker("pentester", cmd_list, on_output=self.write_terminal)
+            if self.free_cmd_switch.value:
+                cmd_str = self.raw_cmd.value
+                self.last_command = f"nmap {cmd_str}"
+                await self.write_terminal(f"[COMANDO] nmap {cmd_str}\n\n")
+                cmd_list = ["nmap"] + shlex.split(cmd_str)
+            else:
+                cmd_str = self.get_command()
+                self.last_command = cmd_str
+                await self.write_terminal(f"[COMANDO] {cmd_str}\n\n")
+                cmd_list = shlex.split(cmd_str)
+            
+            await self.app.run_docker("pentester", cmd_list, on_output=self.write_terminal, tab=self)
         except Exception as err:
             await self.write_terminal(f"[ERRO] {err}\n")

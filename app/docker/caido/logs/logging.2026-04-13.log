@@ -1,4 +1,0 @@
-2026-04-13T19:29:46.043784Z  INFO main sync|client: Transport channel is closed, closing sync client
-2026-04-13T19:30:00.357463Z ERROR main sync|transport: Websocket connection to sync server failed: Io(Custom { kind: Uncategorized, error: "failed to lookup address information: Name or service not known" })
-2026-04-13T19:30:16.212300Z  INFO main service|sync: Sync client started
-2026-04-13T19:30:18.872715Z  INFO main sync|client: OAuth2 Client subscribed

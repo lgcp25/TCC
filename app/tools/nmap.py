@@ -1,14 +1,33 @@
+from tools.base_tool import BaseTool
+from utils import sanitize, valid_url, valid_port
 
-from shared_imports import *
 
-class Nmap():
-        
-    def build_nmap_command(self, target, mode, port=None, timing="", os_detect=False, script_scan="", verbose=False):
+class Nmap(BaseTool):
+
+    @property
+    def name(self) -> str:
+        return "Nmap"
+
+    @property
+    def binary(self) -> str:
+        return "nmap"
+
+    @property
+    def docker_service(self) -> str:
+        return "pentester"
+
+    def build_command(self, target, mode, port=None, timing="", os_detect=False, script_scan="", verbose=False, raw_cmd=None):
+        if raw_cmd:
+            import shlex
+            parts = shlex.split(raw_cmd)
+            if parts[0] == self.binary: return parts
+            return [self.binary] + parts
+
         target = sanitize(target)
         if not valid_url(target):
             raise ValueError("Alvo inválido.")
 
-        cmd = ["nmap"]
+        cmd = [self.binary]
 
         if mode == "Ver portas abertas (varre todas as portas, pode demorar)":
             cmd += ["-p-", "--open", "-sV"]
@@ -50,10 +69,3 @@ class Nmap():
         # Final: alvo
         cmd.append(target)
         return cmd
-
-    def pretty_command(self,cmd):
-        return " ".join(shlex.quote(c)
-                        for c in cmd)
-        
-    
-        

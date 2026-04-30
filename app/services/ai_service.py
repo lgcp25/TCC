@@ -3,28 +3,15 @@ import json
 import hashlib
 import logging
 from groq import AsyncGroq
-from dotenv import load_dotenv
-
-load_dotenv()
+from config import CACHE_FILE, AI_MODEL, AI_TEMPERATURE, TEACHER_TONE
 
 logger = logging.getLogger(__name__)
-
-# Tom pedagógico aplicado em todos os prompts
-TEACHER_TONE = (
-    "Você é um professor de cibersegurança experiente ensinando um aluno de graduação. "
-    "Sempre explique o 'porquê' das coisas, não apenas o 'o quê'. "
-    "Use linguagem acessível mas técnica. Responda em Português do Brasil. "
-    "Use Markdown para formatar sua resposta."
-)
-
-# Diretório raiz do projeto (2 níveis acima deste arquivo: app/services -> raiz)
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 class AIContext:
     def __init__(self):
         self.api_key = os.getenv("GROQ_API_KEY", "")
-        self.model = "llama-3.3-70b-versatile"
-        self.cache_file = os.path.join(_PROJECT_ROOT, "ai_cache.json")
+        self.model = AI_MODEL
+        self.cache_file = CACHE_FILE
         self.cache = self._load_cache()
 
     def _load_cache(self):
@@ -45,11 +32,12 @@ class AIContext:
         except IOError as e:
             logger.error(f"Erro ao salvar cache: {e}")
 
-    def _make_key(self, action, command):
-        """Gera chave de cache baseada na ação + comando completo."""
-        raw = f"{action}::{command.strip()}"
+    def _make_key(self, action, command, logs=""):
+        """Gera chave de cache baseada na ação + comando + hash dos logs."""
+        logs_hash = hashlib.md5(logs.strip().encode()).hexdigest()[:8] if logs else ""
+        raw = f"{action}::{command.strip()}::{logs_hash}"
         h = hashlib.sha256(raw.encode()).hexdigest()
-        logger.info(f"Cache key: action={action}, cmd='{command.strip()}' → {h[:16]}…")
+        logger.info(f"Cache key: action={action}, cmd='{command.strip()[:20]}...', logs_hash={logs_hash} → {h[:16]}…")
         return h
 
     async def _ask_ai(self, system_prompt, user_content, max_tokens=1000, cache_key=None):
@@ -64,17 +52,21 @@ class AIContext:
         try:
             client = AsyncGroq(api_key=self.api_key)
             completion = await client.chat.completions.create(
-                model=self.model,
+                model=AI_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content}
                 ],
-                temperature=0.4,
+                temperature=AI_TEMPERATURE,
                 max_tokens=max_tokens
             )
             result = completion.choices[0].message.content
             if cache_key:
                 self.cache[cache_key] = result
+                # Mecanismo simples de LRU: Evita que o cache cresça infinitamente
+                if len(self.cache) > 50:
+                    oldest_key = next(iter(self.cache))
+                    del self.cache[oldest_key]
                 self._save_cache()
                 logger.info(f"💾 Cache SAVE: {cache_key[:16]}…")
             return result
@@ -86,32 +78,27 @@ class AIContext:
         if len(logs.strip()) < 10 and not command:
             return "Conteúdo insuficiente."
 
-        h = self._make_key("analyze", command)
-
-        if "Explicação" in tool:
+        h = self._make_key("analyze", command, logs)
+        
+        if self._is_low_value_result(logs):
             system = (
                 f"{TEACHER_TONE}\n"
-                "Liste cada flag/parâmetro do comando com uma explicação de 1 linha. "
-                "Formato: `flag` — o que faz. Sem introdução nem conclusão."
-            )
-            max_t = 350
-        elif self._is_low_value_result(logs):
-            system = (
-                f"{TEACHER_TONE}\n"
-                "Os resultados mostram portas fechadas ou filtradas. "
-                "Explique de forma breve o que isso significa para o aluno: "
-                "por que as portas estão assim, se o alvo pode estar protegido por firewall, "
-                "e sugira 2 comandos alternativos para tentar obter mais informações. "
-                "Seja curto e direto."
+                "Os resultados mostram pouco ou nenhum progresso (portas fechadas/timeout). "
+                "Explique por que isso pode estar acontecendo (firewall, alvo offline) "
+                "e sugira 2 alternativas técnicas para tentar contornar. Seja breve."
             )
             max_t = 400
         else:
             system = (
                 f"{TEACHER_TONE}\n"
-                "Analise os logs de pentest abaixo. Identifique vulnerabilidades usando os níveis: "
-                "[CRÍTICO], [ALTO], [MÉDIO], [BAIXO]. "
-                "Explique cada achado como se o aluno estivesse vendo isso pela primeira vez. "
-                "Sugira o que ele deveria investigar em seguida."
+                "Você é um analista de segurança sênior. Sua tarefa é analisar logs de pentest.\n"
+                "OBJETIVO: Identifique exatamente o que a ferramenta ENCONTROU ou EXTRAIU.\n\n"
+                "REGRAS CRÍTICAS:\n"
+                "1. Se houver nomes de BANCOS DE DADOS, TABELAS ou USUÁRIOS extraídos, liste-os em destaque.\n"
+                "2. Classifique os achados: [CRÍTICO], [ALTO], [MÉDIO] ou [BAIXO].\n"
+                "3. Explique o significado técnico de cada descoberta para um aluno.\n"
+                "4. Sugira o próximo passo óbvio baseado nos dados obtidos (ex: se listou DBs, agora listar tabelas).\n"
+                "5. NÃO explique apenas o que a ferramenta faz em geral, foque nos DADOS REAIS nos logs."
             )
             max_t = 1200
 
@@ -145,7 +132,7 @@ class AIContext:
 
     # ─── BOTÃO: Dicas e Passos ───────────────────────────────────────────
     async def get_tool_tips(self, tool, phase, command="", logs=""):
-        h = self._make_key("tips", f"{tool}:{command}")
+        h = self._make_key("tips", f"{tool}:{command}", logs)
         system = (
             f"{TEACHER_TONE}\n"
             "Sugira exatamente 3 próximos passos lógicos para o aluno seguir no pentest. "
@@ -157,7 +144,7 @@ class AIContext:
 
     # ─── BOTÃO: Adicionar ao Relatório ───────────────────────────────────
     async def generate_formal_report(self, tool, logs, command=""):
-        h = self._make_key("report", f"{tool}:{command}")
+        h = self._make_key("report", f"{tool}:{command}", logs)
         system = (
             f"{TEACHER_TONE}\n"
             "Crie uma análise técnica formal para relatório de pentest. "

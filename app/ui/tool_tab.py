@@ -2,15 +2,18 @@ import flet as ft
 import os
 import datetime
 import subprocess
+from config import THEME_BG, THEME_CARD, THEME_BORDER, THEME_INPUT_BG, THEME_TERMINAL_BG, INPUT_STYLE
 
 class ToolTab:
-    def __init__(self, app, name, phase, doc_url, icon, icon_off):
+    def __init__(self, app, name, phase, doc_url, icon, icon_off, description="", help_text=""):
         self.app = app
         self.name = name
         self.phase = phase
         self.doc_url = doc_url
         self.icon = icon
         self.icon_off = icon_off
+        self.description = description
+        self.help_text = help_text
         self.last_command = ""
 
         # ESTILO DOS TÍTULOS (Aumentado e Estilizado)
@@ -25,10 +28,10 @@ class ToolTab:
         self.terminal_container = ft.Container(
             content=self.terminal_output, 
             expand=True, 
-            bgcolor="#05080D", 
+            bgcolor=THEME_TERMINAL_BG, 
             border_radius=8, 
             padding=15, 
-            border=ft.border.all(1, "#1E293B")
+            border=ft.border.all(1, THEME_BORDER)
         )
         self.terminal_buffer = ""
 
@@ -37,15 +40,29 @@ class ToolTab:
         self.ai_container = ft.Container(
             content=self.ai_output, 
             expand=True, 
-            bgcolor="#0F172A", 
+            bgcolor=THEME_CARD, 
             border_radius=8, 
             padding=15, 
-            border=ft.border.all(1, "#1E293B")
+            border=ft.border.all(1, THEME_BORDER)
         )
 
         self.left_col = ft.Column(spacing=20, scroll=ft.ScrollMode.ALWAYS)
         
         # Header
+        # Campos Base para Comando Manual
+        self.free_cmd_switch = ft.Switch(
+            label="Modo Comando Manual", 
+            value=False, 
+            active_color=ft.Colors.PURPLE_400
+        )
+        self.raw_cmd = ft.TextField(
+            label="Comando Manual Completo",
+            value="",
+            disabled=True,
+            **INPUT_STYLE
+        )
+        self.free_cmd_switch.on_change = self._toggle_free_mode_base
+
         self.header = ft.Row([
             ft.Column([
                 ft.Row([ft.Icon(icon, color="blue400", size=32), ft.Text(f"{name} - Tool", size=30, weight="bold", color="white")]),
@@ -55,7 +72,9 @@ class ToolTab:
                         content=ft.Row([ft.Icon(ft.Icons.TRACK_CHANGES, size=14, color="amber"), ft.Text(phase, size=11, color="amber", weight="bold")], spacing=5),
                         padding=ft.padding.symmetric(horizontal=12, vertical=4), border=ft.border.all(1, "amber"), border_radius=20
                     )
-                ])
+                ]),
+                ft.Container(height=5),
+                ft.Text(self.description, size=12, color="blueGrey300", max_lines=3, overflow=ft.TextOverflow.ELLIPSIS)
             ], expand=True),
             ft.ElevatedButton("Documentação Oficial", icon=ft.Icons.DESCRIPTION, on_click=self.open_doc, bgcolor="#1E293B", color="white")
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
@@ -76,7 +95,7 @@ class ToolTab:
                     ft.ElevatedButton("Cancelar", icon=ft.Icons.STOP, on_click=self.cancel, height=50, bgcolor="red900", color="white", expand=True)
                 ], spacing=10)
             ], spacing=10),
-            padding=15, bgcolor="#0F172A", border_radius=10, border=ft.border.all(1, "#1E293B")
+            padding=15, bgcolor=THEME_CARD, border_radius=10, border=ft.border.all(1, THEME_BORDER)
         )
 
         self.view = ft.Container(
@@ -90,10 +109,31 @@ class ToolTab:
                             ft.Container(expand=True),
                             ft.OutlinedButton("Limpar Campos", icon=ft.Icons.DELETE_OUTLINE, on_click=lambda _: self.reset_fields() if hasattr(self, 'reset_fields') else None, width=float("inf"), style=ft.ButtonStyle(color="blueGrey200"))
                         ], expand=True),
-                        width=300, bgcolor="#0F172A", padding=20, border_radius=10, border=ft.border.all(1, "#1E293B")
+                        width=300, bgcolor=THEME_CARD, padding=20, border_radius=10, border=ft.border.all(1, THEME_BORDER)
                     ),
                     ft.Column([
-                        ft.Container(content=ft.Row([ft.Row([ft.Container(width=5, height=15, bgcolor="blue400"), ft.Text("RESULTADO DO SCAN", style=self.TEXT_TITLE)]), ft.OutlinedButton("Copiar Logs", icon=ft.Icons.COPY, on_click=self.copy_logs, style=ft.ButtonStyle(color="blueGrey200"))], alignment=ft.MainAxisAlignment.SPACE_BETWEEN), padding=ft.padding.only(bottom=5)),
+                        ft.Container(
+                            content=ft.Row([
+                                ft.Row([
+                                    ft.Container(width=5, height=15, bgcolor="blue400"), 
+                                    ft.Text("RESULTADO DO SCAN", style=self.TEXT_TITLE),
+                                    ft.IconButton(
+                                        icon=ft.Icons.HELP_OUTLINE, 
+                                        icon_color="blue400", 
+                                        icon_size=18,
+                                        tooltip="Ajuda sobre os campos desta ferramenta",
+                                        on_click=self.show_help
+                                    ),
+                                ], spacing=5), 
+                                ft.OutlinedButton(
+                                    "Copiar Logs", 
+                                    icon=ft.Icons.COPY, 
+                                    on_click=self.copy_logs, 
+                                    style=ft.ButtonStyle(color="blueGrey200")
+                                )
+                            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN), 
+                            padding=ft.padding.only(bottom=5)
+                        ),
                         self.terminal_container,
                         self.actions_section
                     ], expand=True, spacing=10),
@@ -104,12 +144,42 @@ class ToolTab:
                     ], width=500, spacing=10)
                 ], expand=True, spacing=15)
             ], expand=True, spacing=20),
-            padding=20, bgcolor="#020617"
+            padding=20, bgcolor=THEME_BG
         )
+
+    def _toggle_free_mode_base(self, e):
+        is_free = self.free_cmd_switch.value
+        self.raw_cmd.disabled = not is_free
+        
+        # Desabilita todos os outros campos na left_col (excluindo os do modo manual e o título)
+        for control in self.left_col.controls:
+            if control not in [self.free_cmd_switch, self.raw_cmd] and hasattr(control, 'disabled'):
+                control.disabled = is_free
+                
+        self.left_col.update()
+
+    def add_manual_controls(self):
+        """Método helper para as abas adicionarem o divisor e os controles manuais no fim do left_col"""
+        self.left_col.controls.extend([
+            ft.Divider(color=THEME_BORDER),
+            self.free_cmd_switch,
+            self.raw_cmd
+        ])
 
     async def open_doc(self, e):
         try: subprocess.Popen(["xdg-open", self.doc_url])
         except: await self.app.page.launch_url(self.doc_url)
+
+    async def show_help(self, e):
+        """Exibe o guia de uso da ferramenta no terminal"""
+        await self.clear_terminal()
+        help_header = f"--- GUIA DE USO: {self.name} ---\n\n"
+        if not self.help_text:
+            content = "Nenhuma ajuda detalhada disponível para esta ferramenta."
+        else:
+            content = self.help_text
+        
+        await self.write_terminal(help_header + content + "\n\n" + "-"*30 + "\n")
 
     async def write_ai(self, text):
         try:
@@ -161,8 +231,9 @@ class ToolTab:
         summary = await ai_service.generate_executive_summary(self.app.report_findings)
         self.app.set_loading("Criando PDF...")
         try:
+            from config import DOCS_DIR
             now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            path = os.path.join(os.getcwd(), f"Relatorio_Vaporeon_{now}.pdf")
+            path = os.path.join(DOCS_DIR, f"Relatorio_Vaporeon_{now}.pdf")
             generate_pentest_pdf(self.app.report_findings, path, summary_text=summary)
             self.app.report_findings = []
             self.show_popup("🏆 Relatório Gerado", f"Salvo em: {os.path.basename(path)}")
@@ -174,20 +245,51 @@ class ToolTab:
         dlg = ft.AlertDialog(title=ft.Text(title, weight="bold"), content=ft.Text(message), actions=[ft.TextButton("OK", on_click=close_dlg)])
         self.app.page.dialog = dlg; dlg.open = True; self.app.page.update()
 
-    def copy_logs(self, e):
-        try: self.app.page.clipboard = self.terminal_buffer; self.app.page.update(); self.show_snack("📋 Logs copiados!", "blue")
-        except: pass
+    async def copy_logs(self, e):
+        if not self.terminal_buffer.strip():
+            self.show_snack("⚠ Terminal vazio. Nada para copiar.", "amber800")
+            return
+            
+        import platform
+        import subprocess
+        
+        try:
+            # Compatibilidade Multiplataforma
+            sistema = platform.system()
+            
+            if sistema == "Linux":
+                # Tenta xclip no Linux
+                try:
+                    process = subprocess.Popen(['xclip', '-selection', 'clipboard'], stdin=subprocess.PIPE)
+                    process.communicate(input=self.terminal_buffer.encode('utf-8'))
+                except:
+                    self.app.page.clipboard = self.terminal_buffer
+                    
+            elif sistema == "Windows":
+                # Tenta clip.exe no Windows
+                try:
+                    process = subprocess.Popen(['clip'], stdin=subprocess.PIPE)
+                    process.communicate(input=self.terminal_buffer.encode('utf-8'))
+                except:
+                    self.app.page.clipboard = self.terminal_buffer
+            
+            else:
+                # Fallback geral do Flet para outros (Mac, etc)
+                self.app.page.clipboard = self.terminal_buffer
+            
+            self.app.page.update()
+            self.show_snack(f"📋 {len(self.terminal_buffer)} caracteres copiados!", "blue")
+            
+        except Exception as err:
+            self.show_snack("Erro ao copiar. Selecione manualmente no terminal.", "red900")
 
     async def write_terminal(self, text):
-        self.terminal_output.controls.append(ft.Text(text, color="#2DD4BF", font_family="RobotoMono", size=13))
+        self.terminal_output.controls.append(ft.Text(text, color="#2DD4BF", font_family="RobotoMono", size=13, selectable=True))
         self.terminal_output.update(); self.terminal_buffer += text
 
     async def clear_ai(self): self.ai_output.controls.clear(); self.ai_output.update()
     async def clear_terminal(self): self.terminal_buffer = ""; self.terminal_output.controls.clear(); self.terminal_output.update()
     async def cancel(self, e):
-        from services.docker_runner import cancel_process
-        cancel_process()
-        self.app.set_loading("Interrompido", False)
-        await self.write_terminal("\n[PROCESSO CANCELADO PELO USUÁRIO]\n")
+        self.app.cancel_process(on_output=self.write_terminal, tab=self)
     def show_snack(self, m, c):
         sn = ft.SnackBar(ft.Text(m, color="white"), bgcolor=c); self.app.page.snack_bar = sn; sn.open = True; self.app.page.update()

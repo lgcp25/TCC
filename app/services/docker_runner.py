@@ -1,14 +1,10 @@
 import asyncio
 import traceback
 import os
+from config import DOCKER_DIR
 
-# Variável global para controle de processos
-current_proc = None
-
-async def run_docker(app, service, cmd_list, on_output, on_finish=None):
-    global current_proc
-    # O diretório do docker agora é relativo ao projeto
-    docker_dir = os.path.join(os.getcwd(), "app", "docker")
+async def run_docker(caller_obj, service, cmd_list, on_output, on_finish=None):
+    docker_dir = DOCKER_DIR
     
     docker_cmd = ["docker", "compose", "run", "--quiet", "--rm", "--remove-orphans", service] + cmd_list
     
@@ -20,7 +16,7 @@ async def run_docker(app, service, cmd_list, on_output, on_finish=None):
             cwd=docker_dir
         )
         
-        current_proc = proc
+        caller_obj.current_proc = proc
 
         while True:
             line = await proc.stdout.readline()
@@ -48,20 +44,23 @@ async def run_docker(app, service, cmd_list, on_output, on_finish=None):
             on_output(err_msg)
 
     finally:
-        current_proc = None
+        caller_obj.current_proc = None
         if on_finish:
             if asyncio.iscoroutinefunction(on_finish):
                 await on_finish()
             else:
                 on_finish()
 
-def cancel_process(on_output=None):
-    global current_proc
-    if current_proc:
+def cancel_process(caller_obj, on_output=None):
+    proc = getattr(caller_obj, "current_proc", None)
+    if proc:
         try:
-            current_proc.terminate()
+            proc.terminate()
             if on_output:
-                on_output("\n[PROCESSO CANCELADO PELO USUÁRIO]\n")
+                if asyncio.iscoroutinefunction(on_output):
+                    asyncio.create_task(on_output("\n[PROCESSO CANCELADO PELO USUÁRIO]\n"))
+                else:
+                    on_output("\n[PROCESSO CANCELADO PELO USUÁRIO]\n")
         except:
             pass
-        current_proc = None
+        caller_obj.current_proc = None

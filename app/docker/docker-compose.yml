@@ -30,10 +30,21 @@ services:
     build: .
     container_name: pentester
     working_dir: /work
+    profiles: ["tools"]
    #entrypoint: ["bash"]
     volumes:
       - ./results:/results
       - ./wordlists:/wordlists
       - ./nuclei-templates:/opt/nuclei-templates
+
+  # ===================================================
+  #  SERVIÇO METASPLOIT (Oficial da Rapid7 - Leve e Otimizado)
+  # =================================================== 
+  metasploit:
+    image: metasploitframework/metasploit-framework:latest
+    container_name: metasploit
+    profiles: ["tools"]
+    volumes:
+      - ./results:/results
 volumes:
   ollama_data:
