@@ -1,6 +1,6 @@
 import flet as ft
 import logging
-from controller import PentesterApp
+from controllers.main_controller import PentesterApp
 
 logging.basicConfig(level=logging.INFO, format="%(name)s | %(message)s")
 
