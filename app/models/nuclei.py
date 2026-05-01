@@ -17,25 +17,36 @@ class Nuclei(BaseTool):
         return "pentester"
 
     def build_command(self, target, template_group="Todos (Padrão)", severity="Todas", 
-                      rate_limit="150", update_templates=False, raw_cmd=None):
+                      rate_limit="150", update_templates=False, headers=None, tags=None, raw_cmd=None):
+        
+        # Apenas as flags essenciais para o app
+        system_flags = ["-ni", "-no-color"]
+
         if raw_cmd:
-            import shlex
             parts = shlex.split(raw_cmd)
-            if not parts: return [self.binary]
-            if parts[0] == self.binary: return parts
-            return [self.binary] + parts
+            if not parts: return [self.binary] + system_flags
+            if parts[0] == self.binary: parts = parts[1:]
+            return [self.binary] + system_flags + parts
 
-        cmd = [self.binary, "-u", target]
+        cmd = [self.binary] + system_flags + ["-u", target]
 
-        # Grupo de templates
-        if template_group == "CVEs":
-            cmd += ["-t", "cves/"]
-        elif template_group == "Web Vulnerabilities":
-            cmd += ["-t", "vulnerabilities/"]
-        elif template_group == "Default Login":
-            cmd += ["-t", "default-logins/"]
-        elif template_group == "Exposures":
-            cmd += ["-t", "exposures/"]
+        # Tags
+        if tags:
+            cmd += ["-tags", tags]
+
+        # Grupo de templates - Usando caminhos relativos (padrão do Nuclei)
+        mapping = {
+            "CVEs": "cves/",
+            "Vulnerabilidades Web": "vulnerabilities/",
+            "Painéis Expostos": "exposures/",
+            "Configurações Padrão": "default-logins/",
+            "Tecnologias": "technologies/",
+            "Fuzzing": "fuzzing/",
+            "Helpers": "helpers/"
+        }
+        
+        if template_group in mapping:
+            cmd += ["-t", mapping[template_group]]
             
         # Severidade
         if severity and severity != "Todas":
@@ -45,8 +56,9 @@ class Nuclei(BaseTool):
         if rate_limit:
             cmd += ["-rl", str(rate_limit)]
 
-        # Update
-        if update_templates:
-            cmd += ["-ut"]
+        # Headers (Cookies do DVWA)
+        if headers:
+            for key, value in headers.items():
+                cmd += ["-H", f"{key}: {value}"]
 
         return cmd

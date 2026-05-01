@@ -8,7 +8,8 @@ from views.tabs import (
     NmapTab, SqlmapTab, NucleiTab, NiktoTab, GobusterTab, 
     DirsearchTab, CommixTab, NetcatTab, MetasploitTab
 )
-from services.docker_runner import run_docker, cancel_process
+from services.docker_runner import run_docker_turbo, cancel_process
+
 
 logger = logging.getLogger(__name__)
 
@@ -102,10 +103,15 @@ class PentesterApp:
             await asyncio.sleep(2)
         except Exception as e:
             logger.warning(f"Falha ao iniciar Docker: {e}")
+
         self.set_loading("", False)
+
+        # Força o destaque inicial do botão do Nmap
+        self.switch_tool("Nmap")
 
         # Inicia monitoramento em background
         asyncio.ensure_future(self._monitor_services())
+
 
     # Monitora os serviços em background verifica o status dos containers a cada 10 segundos
     async def _monitor_services(self):
@@ -136,11 +142,23 @@ class PentesterApp:
             # Espera 10 segundos antes de verificar novamente impede o app de travar
             await asyncio.sleep(10)
 
+
+
     # Método que alterna o painel conforme o botão clicado pelo usuário
     def switch_tool(self, tool_name):
         if tool_name in self.tools:
             self.content_area.content = self.tools[tool_name].view
             self.content_area.update()
+            
+            # Atualiza o visual dos botões no cabeçalho (apaga todos, acende o clicado)
+            if hasattr(self, 'tool_buttons'):
+                for key, btn in self.tool_buttons.items():
+                    if key == tool_name:
+                        btn.style = ft.ButtonStyle(color="white", bgcolor="blue700")
+                    else:
+                        btn.style = ft.ButtonStyle(color="blueGrey300", bgcolor=ft.Colors.TRANSPARENT)
+                    btn.update()
+
 
     # Método que exibe uma mensagem do status e uma barra de progresso
     def set_loading(self, status, visible=True):
@@ -149,11 +167,27 @@ class PentesterApp:
         self.tab_header.status_text.update()
         self.tab_header.loader.update()
 
-    # Método que executa o comando no container
+    # Método que executa o comando no container (Modo Turbo)
     async def run_docker(self, container, cmd, on_output, tab=None):
+        from services.docker_runner import run_docker_turbo
         self.set_loading("Scanner em execução...")
-        await run_docker(tab or self, container, cmd, on_output)
-        self.set_loading("", False)
+        
+        # Força a bolinha verde para indicar atividade imediatamente
+        if container == "pentester":
+            self.tab_header.svc_pentester.color = "green"
+            self.tab_header.svc_pentester.update()
+        
+        # Callback executado quando a thread do Docker termina
+        def finish_callback():
+            self.set_loading("", False)
+            # A bolinha vai ser reavaliada no próximo ciclo de 10s, mas podemos apagar ela agora se o scan acabou
+            if container == "pentester":
+                self.tab_header.svc_pentester.color = "red"
+                self.tab_header.svc_pentester.update()
+                
+        # Chamamos o motor turbo (Threaded) passando o callback de finalização
+        run_docker_turbo(tab or self, container, cmd, on_output, on_finish=finish_callback)
+
 
     # Método que cancela o comando no container
     def cancel_process(self, on_output=None, tab=None):

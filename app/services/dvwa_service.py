@@ -7,8 +7,10 @@ from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-# Base URL do DVWA rodando no Docker
+# Como o Python roda no host (fora do container), ele não consegue acessar 'http://dvwa' diretamente sem um proxy.
+# Para evitar que o DVWA invalide o cookie por 'Host' diferente, vamos forçar o header Host durante o login.
 DVWA_URL = "http://localhost:8081"
+
 
 def _get_token(session, url):
     """Obtém o token CSRF da página, necessário no DVWA."""
@@ -19,6 +21,8 @@ def _get_token(session, url):
 def _init_dvwa_sync():
     """Lógica síncrona para inicializar o DVWA. Roda em thread separada."""
     session = requests.Session()
+    # Engana o DVWA para ele achar que a requisição veio do container interno, validando a sessão
+    session.headers.update({"Host": "dvwa"})
     
     # Configura retry para esperar o contêiner subir
     retries = Retry(total=5, backoff_factor=2, status_forcelist=[ 500, 502, 503, 504 ])

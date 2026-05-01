@@ -24,7 +24,19 @@ class ToolTab:
         )
         
         # Terminal
-        self.terminal_output = ft.ListView(expand=True, spacing=0, auto_scroll=True)
+        # Terminal: TextField perfeito para seleção (com fundo transparente)
+        self.terminal_output = ft.TextField(
+            value="",
+            multiline=True,
+            read_only=True,
+            expand=True,
+            border=ft.InputBorder.NONE, # Remove a borda padrão
+            filled=False,               # Remove o fundo cinza que apareceu da outra vez!
+            text_size=13,
+            text_style=ft.TextStyle(font_family="RobotoMono", color="#2DD4BF"),
+            content_padding=0,
+        )
+
         self.terminal_container = ft.Container(
             content=self.terminal_output, 
             expand=True, 
@@ -33,7 +45,9 @@ class ToolTab:
             padding=15, 
             border=ft.border.all(1, THEME_BORDER)
         )
-        self.terminal_buffer = ""
+
+
+
 
         # IA
         self.ai_output = ft.ListView(expand=True, spacing=10)
@@ -147,11 +161,15 @@ class ToolTab:
                     ], width=500, spacing=10)
                 ], expand=True, spacing=15)
             ], expand=True, spacing=20),
-            padding=20, bgcolor=THEME_BG
         )
 
+    @property
+    def terminal_buffer(self):
+        # Retorna o valor do TextField como se fosse o buffer antigo
+        return self.terminal_output.value or ""
 
     def _toggle_free_mode_base(self, e):
+
         is_free = self.free_cmd_switch.value
         self.raw_cmd.disabled = not is_free
         
@@ -329,11 +347,35 @@ class ToolTab:
         except Exception as err:
             self.show_snack("Erro ao copiar. Selecione manualmente no terminal.", "red900")
 
-    # Método que escreve no terminal, adiciona o texto ao buffer e atualiza a view do terminal
-    async def write_terminal(self, text):
-        self.terminal_output.controls.append(ft.Text(text, color="#2DD4BF", font_family="RobotoMono", size=13, selectable=True))
-        self.terminal_output.update()
-        self.terminal_buffer += text
+    # Método que escreve no terminal
+    async def write_terminal(self, text, force_update=False):
+        import time
+        import re
+        
+        # Filtro Silenciador para as mensagens de criação do Docker
+        if "Container docker-pentester" in text:
+            text = re.sub(r"Container docker-pentester-run-[a-z0-9]+ (Creating|Created)[ \r\n]*", "", text)
+
+        # Se o texto ficou vazio, não faz nada
+        if not text: return
+
+        
+        # Adiciona ao valor do campo de texto
+        if self.terminal_output.value is None:
+            self.terminal_output.value = ""
+        self.terminal_output.value += text
+        
+        # Otimização: Só chama o update() se já passou 100ms
+        current_time = time.time()
+        if force_update or not hasattr(self, "_last_terminal_update") or (current_time - self._last_terminal_update) > 0.1:
+            self.terminal_output.update()
+            self._last_terminal_update = current_time
+
+
+
+
+
+
 
     # Método que limpa o output da IA e atualiza a view da IA
     async def clear_ai(self): 
@@ -341,10 +383,13 @@ class ToolTab:
         self.ai_output.update()
 
     # Método que limpa o buffer e o output do terminal e atualiza a view do terminal
+    # Método que limpa o terminal
     async def clear_terminal(self): 
-        self.terminal_buffer = "" 
-        self.terminal_output.controls.clear() 
+        self.terminal_output.value = "" 
         self.terminal_output.update()
+
+
+
     
     # Método que cancela o processo
     async def cancel(self, e):

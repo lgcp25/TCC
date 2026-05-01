@@ -98,8 +98,8 @@ Ferramenta automática para detecção e exploração de falhas de SQL Injection
         await self.clear_terminal()
         try:
             if self.free_cmd_switch.value:
-                import shlex
-                cmd_list = [self.sqlmap.binary] + shlex.split(self.raw_cmd.value)
+                # Usa o model para processar o comando manual e evitar duplicidade do binário
+                cmd_list = self.sqlmap.build_command(target=None, raw_cmd=self.raw_cmd.value)
             else:
                 # Prepara o cookie do DVWA
                 cookies_str = None
@@ -118,7 +118,10 @@ Ferramenta automática para detecção e exploração de falhas de SQL Injection
                 )
             
             self.last_command = self.sqlmap.pretty_command(cmd_list)
+            await self.write_terminal(f"[INFO] Preparando execução no Docker...\n")
             await self.write_terminal(f"[COMANDO] {self.last_command}\n\n")
+            
             await self.app.run_docker(self.sqlmap.docker_service, cmd_list, on_output=self.write_terminal, tab=self)
         except Exception as err:
-            await self.write_terminal(f"ERRO: {err}")
+            await self.write_terminal(f"[ERRO NO APP] {err}\n")
+

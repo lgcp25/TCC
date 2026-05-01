@@ -14,6 +14,10 @@ PROJECT_ROOT = os.path.dirname(APP_DIR)
 # Docker
 DOCKER_DIR = os.path.join(APP_DIR, "docker")
 
+# Relatórios gerados pela aplicação
+DOCS_DIR = os.path.join(PROJECT_ROOT, "reports")
+os.makedirs(DOCS_DIR, exist_ok=True)
+
 # Cache da IA
 CACHE_FILE = os.path.join(PROJECT_ROOT, "ai_cache.json")
 

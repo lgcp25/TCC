@@ -57,9 +57,19 @@ Scanner de vulnerabilidades baseado em 'Templates' (provas de conceito escritas 
                 ft.dropdown.Option("Painéis Expostos"),
                 ft.dropdown.Option("Configurações Padrão"),
                 ft.dropdown.Option("Tecnologias"),
+                ft.dropdown.Option("Fuzzing"),
+                ft.dropdown.Option("Helpers"),
             ],
             **input_style
         )
+
+        self.tags = ft.TextField(
+            label="Tags (ex: xss,sqli,lfi)",
+            value="",
+            hint_text="Deixe vazio para usar templates padrão",
+            **input_style
+        )
+
 
         self.severity = ft.Dropdown(
             label="Severidade Mínima",
@@ -81,8 +91,14 @@ Scanner de vulnerabilidades baseado em 'Templates' (provas de conceito escritas 
             **input_style
         )
 
+        self.use_dvwa_auth = ft.Checkbox(
+            label="Usar Cookies do DVWA (Auto-Auth)",
+            value=True,
+            fill_color="blue400"
+        )
+
         self.update_templates = ft.Switch(
-            label="Atualizar Templates antes de rodar",
+            label="Atualizar Templates",
             value=False
         )
 
@@ -90,11 +106,14 @@ Scanner de vulnerabilidades baseado em 'Templates' (provas de conceito escritas 
         self.left_col.controls.extend([
             ft.Container(height=10),
             self.target,
+            self.tags,
             self.template_group,
             self.severity,
             self.rate_limit,
+            self.use_dvwa_auth,
             self.update_templates
         ])
+
         self.add_manual_controls()
 
     def reset_fields(self):
@@ -102,6 +121,7 @@ Scanner de vulnerabilidades baseado em 'Templates' (provas de conceito escritas 
         self.template_group.value = "Todos (Padrão)"
         self.severity.value = "Todas"
         self.rate_limit.value = "150"
+        self.use_dvwa_auth.value = True
         self.update_templates.value = False
         self.free_cmd_switch.value = False
         self.raw_cmd.value = ""
@@ -109,22 +129,51 @@ Scanner de vulnerabilidades baseado em 'Templates' (provas de conceito escritas 
         self.left_col.update()
         self.app.page.update()
 
+    async def write_terminal(self, text):
+        # Chama o método da base
+        await super().write_terminal(text)
+        # Força atualização da página inteira para garantir visibilidade
+        self.app.page.update()
+
     async def run(self, e):
+        print(f"DEBUG: Botão Run clicado na aba {self.name}") # Aparecerá no terminal de quem roda o app
         await self.clear_terminal()
         try:
+            await self.write_terminal(f"[INFO] Verificando configurações...\n")
+            
+            # Pega cookies se o usuário marcou e se eles existem
+            headers = None
+            if self.use_dvwa_auth.value and self.app.dvwa_cookies:
+                cookie_str = "; ".join([f"{k}={v}" for k, v in self.app.dvwa_cookies.items()])
+                headers = {"Cookie": cookie_str}
+                await self.write_terminal(f"[INFO] Cookies de autenticação aplicados.\n")
+
             if self.free_cmd_switch.value:
-                import shlex
-                cmd_list = [self.nuclei.binary] + shlex.split(self.raw_cmd.value)
+                # Usa o model para processar o comando manual e evitar duplicidade do binário
+                cmd_list = self.nuclei.build_command(target=None, raw_cmd=self.raw_cmd.value)
             else:
                 cmd_list = self.nuclei.build_command(
                     target=self.target.value,
                     template_group=self.template_group.value,
                     severity=self.severity.value,
                     rate_limit=self.rate_limit.value,
-                    update_templates=self.update_templates.value
+                    update_templates=self.update_templates.value,
+                    headers=headers,
+                    tags=self.tags.value
                 )
+
+            
             self.last_command = self.nuclei.pretty_command(cmd_list)
+            await self.write_terminal(f"[INFO] Enviando comando para o Docker...\n")
             await self.write_terminal(f"[COMANDO] {self.last_command}\n\n")
+            
+            # Executa no container
             await self.app.run_docker(self.nuclei.docker_service, cmd_list, on_output=self.write_terminal, tab=self)
+            
         except Exception as err:
-            await self.write_terminal(f"[ERRO] {err}\n")
+            print(f"DEBUG ERRO: {err}")
+            await self.write_terminal(f"[ERRO NO APP] {err}\n")
+            self.app.page.update()
+
+
+

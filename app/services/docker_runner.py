@@ -1,55 +1,78 @@
+import subprocess
+import threading
+import os
 import asyncio
 import traceback
-import os
 from config import DOCKER_DIR
 
-async def run_docker(caller_obj, service, cmd_list, on_output, on_finish=None):
+def run_docker_turbo(caller_obj, service, cmd_list, on_output, on_finish=None):
     docker_dir = DOCKER_DIR
+    loop = asyncio.get_event_loop()
     
-    docker_cmd = ["docker", "compose", "run", "--quiet", "--rm", "--remove-orphans", service] + cmd_list
-    
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            *docker_cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-            cwd=docker_dir
-        )
-        
-        caller_obj.current_proc = proc
+    # Comando do Docker limpo e seguro
+    docker_cmd = ["docker", "compose", "run", "-T", "--rm", service] + cmd_list
 
-        while True:
-            line = await proc.stdout.readline()
-            if not line:
-                break
+
+
+    
+    def target():
+        try:
+            proc = subprocess.Popen(
+                docker_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL, # GARANTIA 1: Docker nunca vai travar esperando teclado
+                cwd=docker_dir,
+                text=False, # Lendo em binário para controle absoluto do buffer
+                bufsize=0   # GARANTIA 2: Buffering completamente desligado (Unbuffered)
+            )
             
-            text = line.decode('utf-8', errors='ignore')
-            if asyncio.iscoroutinefunction(on_output):
-                await on_output(text)
-            else:
-                on_output(text)
+            caller_obj.current_proc = proc
+            
+            # GARANTIA 3: Leitura agressiva. Lê blocos pequenos na velocidade da luz.
+            # Acumula um pouco antes de mandar pro Flet para a tela não congelar.
+            buffer_str = ""
+            while True:
+                char = proc.stdout.read(128) # Lê 128 bytes por vez
+                if not char and proc.poll() is not None:
+                    break
+                
+                if char:
+                    texto = char.decode('utf-8', errors='ignore')
+                    buffer_str += texto
+                    
+                    # Se tiver quebra de linha ou o buffer passar de 50 chars, envia pra UI
+                    if '\n' in buffer_str or len(buffer_str) > 50:
+                        if on_output:
+                            asyncio.run_coroutine_threadsafe(on_output(buffer_str), loop)
+                        buffer_str = ""
 
-        rc = await proc.wait()
-        finish_msg = f"\n[Finalizado] Código: {rc}\n"
-        if asyncio.iscoroutinefunction(on_output):
-            await on_output(finish_msg)
-        else:
-            on_output(finish_msg)
+            # Envia o que sobrou no buffer
+            if buffer_str and on_output:
+                asyncio.run_coroutine_threadsafe(on_output(buffer_str), loop)
 
-    except Exception as e:
-        err_msg = f"ERRO: {e}\n{traceback.format_exc()}"
-        if asyncio.iscoroutinefunction(on_output):
-            await on_output(err_msg)
-        else:
-            on_output(err_msg)
+            proc.stdout.close()
+            rc = proc.wait()
+            
+            if on_output:
+                asyncio.run_coroutine_threadsafe(on_output(f"\n[Finalizado] Código: {rc}\n"), loop)
 
-    finally:
-        caller_obj.current_proc = None
-        if on_finish:
-            if asyncio.iscoroutinefunction(on_finish):
-                await on_finish()
-            else:
-                on_finish()
+        except Exception as e:
+            err_msg = f"ERRO: {e}\n{traceback.format_exc()}"
+            if on_output:
+                asyncio.run_coroutine_threadsafe(on_output(err_msg), loop)
+
+        finally:
+            caller_obj.current_proc = None
+            if on_finish:
+                if asyncio.iscoroutinefunction(on_finish):
+                    asyncio.run_coroutine_threadsafe(on_finish(), loop)
+                else:
+                    on_finish()
+
+    thread = threading.Thread(target=target)
+    thread.daemon = True
+    thread.start()
 
 def cancel_process(caller_obj, on_output=None):
     proc = getattr(caller_obj, "current_proc", None)
@@ -57,10 +80,8 @@ def cancel_process(caller_obj, on_output=None):
         try:
             proc.terminate()
             if on_output:
-                if asyncio.iscoroutinefunction(on_output):
-                    asyncio.create_task(on_output("\n[PROCESSO CANCELADO PELO USUÁRIO]\n"))
-                else:
-                    on_output("\n[PROCESSO CANCELADO PELO USUÁRIO]\n")
+                loop = asyncio.get_event_loop()
+                asyncio.run_coroutine_threadsafe(on_output("\n[PROCESSO CANCELADO PELO USUÁRIO]\n"), loop)
         except:
             pass
         caller_obj.current_proc = None
