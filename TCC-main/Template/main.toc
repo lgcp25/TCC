@@ -26,6 +26,7 @@
 \contentsline {section}{\numberline {2.5}Interface de Gráfica}{11}{section.2.5}%
 \contentsline {section}{\numberline {2.6}Modelos de Linguagem de Grande Escala (LLMs) no apoio ao Pentest}{12}{section.2.6}%
 \contentsline {chapter}{\numberline {3}Revisão da Literatura / Trabalhos Relacionados}{13}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Estratégia de Busca da Literatura}{13}{section.3.1}%
 \contentsline {chapter}{\numberline {4}Proposta}{14}{chapter.4}%
 \contentsline {chapter}{\numberline {5}Conclusão}{15}{chapter.5}%
 \contentsline {chapter}{Referências}{16}{chapter*.1}%

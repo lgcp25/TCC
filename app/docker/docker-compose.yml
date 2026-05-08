@@ -1,8 +1,7 @@
 services:
 
-  # ===================================================
-  #  SERVIÇO DVWA (Damn Vulnerable Web Application)
-  # =================================================== 
+  #  SERVIÇO DVWA
+  
   dvwa:
     image: vulnerables/web-dvwa
     container_name: dvwa
@@ -11,22 +10,9 @@ services:
     networks:
       - pentest-net
 
-  # ===================================================
-  #  SERVIÇO OLLAMA (Modelo de Linguagem)
-  # =================================================== 
-  ollama:
-    image: ollama/ollama
-    container_name: ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - pentest-net
-
-  # ===================================================
-  #  SERVIÇO PENTESTER (Nuclei, SQLMap, etc)
-  # =================================================== 
+ 
+  #  SERVIÇO PENTESTER 
+  
   pentester:
     build: .
     container_name: pentester
@@ -40,9 +26,7 @@ services:
     networks:
       - pentest-net
 
-  # ===================================================
   #  SERVIÇO METASPLOIT
-  # =================================================== 
   metasploit:
     image: metasploitframework/metasploit-framework:latest
     container_name: metasploit

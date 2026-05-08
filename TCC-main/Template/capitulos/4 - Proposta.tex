@@ -1,2 +1,102 @@
 \chapter{Proposta}
 \label{sec:proposta}
+
+\section{Requisitos}
+    \subsection{Requisitos Funcionais}
+        \begin{itemize}
+            \item RF1: A aplicação deve permitir a execução de ferramentas de testes de penetração em um ambiente virtualizado.
+            \item RF2: A aplicação deve oferecer uma interface gráfica intuitiva para facilitar o uso por profissionais iniciantes.
+            \item RF3: A aplicação deve normalizar as saídas das ferramentas em um formato único para facilitar a análise dos resultados.
+            \item RF4: A aplicação deve gerar relatórios técnicos detalhados com base nos resultados obtidos.
+            \item RF5: A aplicação deve oferecer fluxos guiados para auxiliar os usuários durante a utilização das ferramentas.
+        \end{itemize}
+
+    \subsection{Requisitos Não Funcionais}
+        \begin{itemize}
+            \item RNF1: A aplicação deve ser desenvolvida em Python, utilizando a biblioteca Tkinter para a interface gráfica.
+            \item RNF2: A aplicação deve utilizar Docker para virtualizar as ferramentas de testes de penetração, garantindo portabilidade e consistência entre diferentes ambientes de execução.
+            \item RNF3: A aplicação deve ser compatível com os principais sistemas operacionais, incluindo Windows, Linux e macOS.
+            \item RNF4: A aplicação deve ser projetada para ser fácil de usar, mesmo para usuários com pouca experiência em testes de penetração.
+            \item RNF5: A aplicação deve ser segura, evitando a execução de comandos maliciosos e garantindo a integridade do sistema hospedeiro.
+        \end{itemize}
+
+\section{Arquitetura do Sistema}
+
+\section{Ferramentas de Testes de Penetração}
+    Ferramentas de testes de penetração são empregadas para apoiar a identificação, exploração e análise de vulnerabilidades
+    em sistemas computacionais. Elas automatizam tarefas repetitivas, auxiliam na coleta de informações e permitem avaliar,
+    de forma prática, a postura de segurança de redes, sistemas e aplicações. O uso dessas ferramentas
+    é essencial para tornar o processo de pentest mais eficiente e sistemático, especialmente em ambientes complexos\citep{moreno2019introduccao}.
+
+    A seguir, apresentam-se as principais ferramentas consideradas neste trabalho, classificadas de acordo com seu papel no processo de testes de penetração.
+
+        \subsection{Nmap}
+
+            O Nmap (Network Mapper) é uma ferramenta amplamente utilizada para reconhecimento e enumeração de redes. Seu principal
+            objetivo é identificar hosts ativos, portas abertas, serviços em execução e possíveis sistemas operacionais. A fase de reconhecimento 
+            é fundamental para o sucesso do pentest, pois fornece informações iniciais que orientam as etapas
+            subsequentes de análise e exploração\citep{stallings2017network}.
+
+        \subsection{Nuclei}
+
+            O Nuclei é um framework de varredura baseado em templates, empregado para a detecção automatizada de vulnerabilidades conhecidas e más configurações.
+            Seu modelo baseado em assinaturas facilita a identificação rápida de falhas recorrentes em aplicações e serviços, contribuindo para a eficiência da
+            fase de enumeração de vulnerabilidades \citep{moreno2019introduccao}.
+            
+        \subsection{Nikto}
+
+            O Nikto é um scanner de servidores web utilizado para identificar configurações inseguras, arquivos sensíveis expostos e vulnerabilidades conhecidas.
+            Essa ferramenta auxilia na avaliação preliminar da segurança de aplicações web, permitindo detectar falhas 
+            comuns que podem comprometer o ambiente\citep{moreno2019introduccao}.
+        
+        \subsection{Gobuster e Dirsearch}
+
+            Ferramentas como Gobuster e Dirsearch são utilizadas para a enumeração de diretórios, arquivos e recursos ocultos em aplicações web.
+            Essas ferramentas exploram listas de palavras para identificar caminhos não diretamente acessíveis, auxiliando na descoberta de superfícies
+            de ataque adicionais. A enumeração detalhada de recursos expostos é uma etapa relevante na avaliação da 
+            segurança de aplicações\citep{stallings2017network}.
+
+        \subsection{SQLMap e Commix}
+        
+            O SQLMap é uma ferramenta destinada à identificação e exploração automatizada de vulnerabilidades de injeção SQL, enquanto o Commix
+            foca na detecção de falhas de injeção de comandos no sistema operacional. Ambas reduzem o esforço manual do testador ao automatizar
+            testes complexos, permitindo validar o impacto real das vulnerabilidades encontradas \citep{moreno2019introduccao}.
+
+        \subsection{Metasploit}
+
+            O Metasploit é uma plataforma abrangente para exploração de vulnerabilidades e realização de testes de pós-exploração.
+            Ele permite avaliar as consequências práticas das falhas identificadas, auxiliando na compreensão do impacto sobre a
+            confidencialidade, integridade e disponibilidade dos sistemas. Frameworks de exploração são 
+            fundamentais para validar a efetividade dos mecanismos de segurança existentes\citep{stallings2017network}.
+
+        \subsection{Netcat}
+
+            O Netcat é uma ferramenta de rede de propósito geral utilizada para estabelecer conexões TCP/UDP, realizar testes de 
+            conectividade e interagir com serviços de forma direta. Em atividades de pentest, é frequentemente empregado para validação
+            de portas e serviços, simulação de comunicação cliente-servidor e apoio a testes que exigem troca de dados em baixo nível.
+            Por permitir inspeção e interação com serviços de forma simples, o Netcat é útil em etapas de reconhecimento e validação de achados,
+            complementando scanners automatizados e auxiliando na compreensão prática do comportamento de rede \citep{stallings2017network,moreno2019introduccao}.
+        
+        \subsection{Caido}
+
+            O Caido é uma ferramenta utilizada como proxy de interceptação para análise de tráfego HTTP/HTTPS, permitindo a inspeção,
+            modificação e repetição de requisições entre cliente e servidor. Esse tipo de ferramenta é amplamente empregado em testes
+            de segurança de aplicações web, pois possibilita observar o funcionamento interno das comunicações e identificar falhas
+            relacionadas a autenticação, autorização e validação de entradas. A análise do tráfego de aplicações web
+            é fundamental para compreender o comportamento das requisições e detectar vulnerabilidades que não são facilmente identificadas
+            por scanners automatizados \citep{moreno2019introduccao}.
+            
+            Ao atuar como intermediário entre o navegador e a aplicação alvo, o Caido permite que o testador avalie de forma prática
+            o impacto de alterações em parâmetros e cabeçalhos HTTP, auxiliando na identificação de falhas lógicas e de configuração.
+            Dessa forma, a utilização de ferramentas de interceptação complementa o uso de scanners e frameworks de exploração, 
+            contribuindo para uma análise mais abrangente da segurança de aplicações web \citep{stallings2017network}.
+
+\section{Virtualização e Orquestração (Docker)}
+
+\section{Integração e Normalização de Saídas}
+
+\section{Desenvolvimento da Interface Gráfica e Fluxos Guiados}
+
+\section{Implementação de LLM para Suporte ao Usuário}
+
+\section{Geração de Relatórios Técnicos}

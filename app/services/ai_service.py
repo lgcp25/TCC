@@ -4,8 +4,10 @@ import hashlib
 import logging
 from groq import AsyncGroq
 from config import CACHE_FILE, AI_MODEL, AI_TEMPERATURE, TEACHER_JAMERSON
+from utils import normalize_logs
 
 logger = logging.getLogger(__name__)
+
 
 class AIContext:
     def __init__(self):
@@ -75,6 +77,7 @@ class AIContext:
 
     # ─── BOTÃO: Explicar Resultado ───────────────────────────────────────
     async def analyze_results(self, tool, logs, command=""):
+        logs = normalize_logs(logs, tool)
         if len(logs.strip()) < 10 and not command:
             return "Conteúdo insuficiente."
 
@@ -132,6 +135,7 @@ class AIContext:
 
     # ─── BOTÃO: Dicas e Passos ───────────────────────────────────────────
     async def get_tool_tips(self, tool, phase, command="", logs=""):
+        logs = normalize_logs(logs, tool)
         h = self._make_key("tips", f"{tool}:{command}", logs)
         system = (
             f"{TEACHER_JAMERSON}\n"
@@ -144,6 +148,7 @@ class AIContext:
 
     # ─── BOTÃO: Adicionar ao Relatório ───────────────────────────────────
     async def generate_formal_report(self, tool, logs, command=""):
+        logs = normalize_logs(logs, tool)
         h = self._make_key("report", f"{tool}:{command}", logs)
         system = (
             f"{TEACHER_JAMERSON}\n"

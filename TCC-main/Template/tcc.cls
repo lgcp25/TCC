@@ -49,6 +49,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyheadoffset{0cm}
+\setlength{\headheight}{14.5pt}
 \renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0pt}
 \fancyhead[R]{\thepage}
@@ -80,6 +81,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyheadoffset{0cm}
+\setlength{\headheight}{14.5pt}
 \renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0pt}
 \fancyhead[R]{\thepage}
