@@ -1,7 +1,5 @@
 services:
 
-  #  SERVIÇO DVWA
-  
   dvwa:
     image: vulnerables/web-dvwa
     container_name: dvwa
@@ -10,35 +8,20 @@ services:
     networks:
       - pentest-net
 
- 
-  #  SERVIÇO PENTESTER 
-  
   pentester:
     build: .
     container_name: pentester
     working_dir: /work
-    profiles: ["tools"]
+    tty: true
+    stdin_open: true
+    command: tail -f /dev/null
     volumes:
       - ./results:/results
       - ./wordlists:/wordlists
 
-
-    networks:
-      - pentest-net
-
-  #  SERVIÇO METASPLOIT
-  metasploit:
-    image: metasploitframework/metasploit-framework:latest
-    container_name: metasploit
-    profiles: ["tools"]
-    volumes:
-      - ./results:/results
     networks:
       - pentest-net
 
 networks:
   pentest-net:
     driver: bridge
-
-volumes:
-  ollama_data:

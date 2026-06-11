@@ -65,17 +65,15 @@ class AIContext:
             result = completion.choices[0].message.content
             if cache_key:
                 self.cache[cache_key] = result
-                # Mecanismo simples de LRU: Evita que o cache cresça infinitamente
                 if len(self.cache) > 50:
                     oldest_key = next(iter(self.cache))
                     del self.cache[oldest_key]
                 self._save_cache()
-                logger.info(f"Cache SAVE: {cache_key[:16]}…")
             return result
         except Exception as e:
             return f"Erro na IA: {e}"
 
-    # ─── BOTÃO: Explicar Resultado ───────────────────────────────────────
+    #BOTÃO: Explicar Resultado 
     async def analyze_results(self, tool, logs, command=""):
         logs = normalize_logs(logs, tool)
         if len(logs.strip()) < 10 and not command:
@@ -92,17 +90,119 @@ class AIContext:
             )
             max_t = 400
         else:
+            tool_instructions = {
+
+                "Nmap": (
+                    "Analise exclusivamente a saída do Nmap.\n"
+
+                    "Extraia:\n"
+                    "- Portas abertas.\n"
+                    "- Serviços detectados.\n"
+                    "- Versões detectadas.\n"
+                    "- Sistema operacional detectado.\n"
+                    "- Hostnames.\n"
+                    "- Resultados NSE.\n"
+                    "- CVEs explicitamente encontrados.\n\n"
+
+                    "Explique brevemente a função de cada serviço encontrado.\n"
+                    "Não invente informações ausentes."
+                ),
+
+                "Gobuster": (
+                    "Analise exclusivamente a saída do Gobuster.\n"
+
+                    "Extraia:\n"
+                    "- Diretórios encontrados.\n"
+                    "- Arquivos encontrados.\n"
+                    "- Status HTTP.\n"
+                    "- Redirecionamentos.\n\n"
+
+                    "Explique em uma frase por que cada descoberta pode ser interessante durante a enumeração."
+                ),
+
+                "Nikto": (
+                    "Analise exclusivamente a saída do Nikto.\n"
+
+                    "Liste:\n"
+                    "- Vulnerabilidades encontradas.\n"
+                    "- Cabeçalhos ausentes.\n"
+                    "- Tecnologias detectadas.\n"
+                    "- Softwares desatualizados.\n\n"
+
+                    "Explique brevemente o impacto de cada achado.\n"
+                    "Não ensine exploração."
+                ),
+
+                "Sqlmap": (
+                    "Analise exclusivamente a saída do SQLMap.\n"
+
+                    "Informe:\n"
+                    "- Se a injeção foi confirmada.\n"
+                    "- Técnica utilizada.\n"
+                    "- Bancos encontrados.\n"
+                    "- Tabelas encontradas.\n"
+                    "- Colunas encontradas.\n"
+                    "- Credenciais encontradas.\n\n"
+
+                    "Explique o significado dos resultados.\n"
+                    "Não invente dados."
+                ),
+
+                "Netcat": (
+                    "Analise exclusivamente a saída do Netcat.\n"
+
+                    "Informe:\n"
+                    "- Se houve conexão.\n"
+                    "- Tipo de conexão.\n"
+                    "- Dados recebidos.\n"
+                    "- Comandos executados (se existirem).\n\n"
+
+                    "Explique brevemente o que foi obtido."
+                )
+            }
+            tool_spec = tool_instructions.get(tool, "")
+
             system = (
-                f"{TEACHER_JAMERSON}\n"
-                "Você é um analista de segurança sênior. Sua tarefa é analisar logs de pentest.\n"
-                "OBJETIVO: Identifique exatamente o que a ferramenta ENCONTROU ou EXTRAIU.\n\n"
-                "REGRAS CRÍTICAS:\n"
-                "1. Se houver nomes de BANCOS DE DADOS, TABELAS ou USUÁRIOS extraídos, liste-os em destaque.\n"
-                "2. Classifique os achados: [CRÍTICO], [ALTO], [MÉDIO] ou [BAIXO].\n"
-                "3. Explique o significado técnico de cada descoberta para um aluno.\n"
-                "4. Sugira o próximo passo óbvio baseado nos dados obtidos (ex: se listou DBs, agora listar tabelas).\n"
-                "5. NÃO explique apenas o que a ferramenta faz em geral, foque nos DADOS REAIS nos logs."
-            )
+                    f"{TEACHER_JAMERSON}\n"
+
+                    "Você é um instrutor e analista de segurança ofensiva.\n"
+                    "Sua tarefa é analisar os logs da ferramenta e explicar exatamente o que foi encontrado.\n\n"
+
+                    "OBJETIVO:\n"
+                    "Extrair os resultados relevantes do scan e ensinar ao aluno o significado das descobertas.\n\n"
+
+                    "REGRAS CRÍTICAS:\n"
+
+                    "1. Vá direto ao ponto.\n"
+
+                    "2. Classifique cada descoberta em uma das categorias:\n"
+                    "[Reconhecimento]\n"
+                    "[Serviço Exposto]\n"
+                    "[Informação Sensível]\n"
+                    "[Possível Vulnerabilidade]\n"
+                    "[Acesso Obtido]\n\n"
+
+                    "3. Explique brevemente por que cada descoberta é importante durante um pentest.\n"
+
+                    "4. Utilize apenas informações presentes nos logs.\n"
+
+                    "5. Nunca invente CVEs, vulnerabilidades, versões ou serviços.\n"
+
+                    "6. Não forneça exploração passo a passo.\n"
+
+                    "7. Não sugira próximos passos.\n"
+
+                    "8. Não faça recomendações de correção.\n"
+
+                    "9. Não faça avaliações subjetivas de risco.\n\n"
+
+                    f"{tool_spec}\n\n"
+
+                    "10. Use Markdown.\n"
+                    "11. Destaque informações importantes com negrito.\n"
+                    "12. Use tabelas quando apropriado.\n"
+                    "13. Se uma informação não estiver presente nos logs, informe 'Não identificado'."
+                )
             max_t = 1200
 
         user = f"Ferramenta: {tool}\nComando: {command}\nLogs:\n{logs}"
@@ -119,7 +219,7 @@ class AIContext:
             return True
         return False
 
-    # ─── BOTÃO: Explicar Comando ─────────────────────────────────────────
+    #BOTÃO: Explicar Comando 
     async def explain_command(self, command):
         """Cache pelo comando completo."""
         if not command:
@@ -133,20 +233,93 @@ class AIContext:
         user = f"Explique: `{command}`. Use Markdown."
         return await self._ask_ai(system, user, max_tokens=350, cache_key=h)
 
-    # ─── BOTÃO: Dicas e Passos ───────────────────────────────────────────
+    #BOTÃO: Dicas e Passos 
     async def get_tool_tips(self, tool, phase, command="", logs=""):
         logs = normalize_logs(logs, tool)
         h = self._make_key("tips", f"{tool}:{command}", logs)
+        
+        tool_tips = {
+
+            "Nmap": (
+                "- Se encontrar HTTP ou HTTPS, priorize Gobuster ou Nikto.\n"
+                "- Se encontrar SMB, priorize enumeração SMB.\n"
+                "- Se encontrar bancos de dados, priorize SQLMap.\n"
+                "- Se encontrar apenas host ativo, aprofunde o reconhecimento.\n"
+                "- Se não encontrar portas abertas, sugira modos mais completos de Nmap."
+            ),
+
+            "Gobuster": (
+                "- Se encontrar login ou painel administrativo, explique sua relevância.\n"
+                "- Se encontrar diretórios sensíveis, destaque seu potencial valor.\n"
+                "- Se encontrar aplicações dinâmicas, considere SQLMap.\n"
+                "- Se não encontrar resultados relevantes, sugira nova enumeração."
+            ),
+
+            "Nikto": (
+                "- Explique a importância das vulnerabilidades encontradas.\n"
+                "- Se identificar páginas interessantes, considere Gobuster.\n"
+                "- Se identificar formulários ou parâmetros, considere SQLMap.\n"
+                "- Se identificar possível RCE, considere Netcat."
+            ),
+
+            "Sqlmap": (
+                "- Se bancos forem encontrados, sugerir enumeração de tabelas.\n"
+                "- Se tabelas forem encontradas, sugerir enumeração de colunas.\n"
+                "- Se credenciais forem encontradas, destacar o impacto.\n"
+                "- Se execução de comandos estiver disponível, considerar Netcat."
+            ),
+
+            "Netcat": (
+                "- Se uma shell for obtida, explicar o que pode ser investigado.\n"
+                "- Se apenas banner grabbing ocorrer, sugerir retornar à enumeração.\n"
+                "- Se a conexão falhar, sugerir revisar a etapa anterior."
+            )
+        }
+        tip_spec = tool_tips.get(tool, "Sugira os próximos passos baseados na fase atual do pentest.")
+
         system = (
             f"{TEACHER_JAMERSON}\n"
-            "Sugira exatamente 3 próximos passos lógicos para o aluno seguir no pentest. "
-            "Para cada passo, dê o comando exato e uma justificativa curta (1 linha). "
-            "Não repita o que já foi feito. Seja objetivo."
-        )
-        user = f"Fase: {phase}\nFerramenta: {tool}\nComando executado: {command}\nLogs:\n{logs}"
+
+            "Você é um instrutor de Pentest para iniciantes.\n"
+            "Sua tarefa é sugerir os próximos passos mais adequados com base nos resultados obtidos.\n\n"
+
+            "REGRAS CRÍTICAS:\n"
+
+            "1. Forneça entre 1 e 3 passos.\n"
+
+            "2. Para cada passo utilize o formato:\n"
+            "PASSO X\n"
+            "O que fazer: ...\n"
+            "Por quê: ...\n"
+            "O que procurar: ...\n\n"
+
+            "3. Priorize funcionalidades disponíveis no Vaporeon.\n"
+
+            "4. Explique brevemente o raciocínio por trás da recomendação.\n"
+
+            "5. Não invente vulnerabilidades, serviços ou resultados.\n"
+
+            "6. Baseie-se apenas nos logs recebidos.\n"
+
+            "7. Se os resultados forem insuficientes, explique isso e sugira um próximo teste adequado.\n"
+
+            "8. Evite linguagem excessivamente técnica para iniciantes.\n"
+
+            "9. O objetivo é ensinar metodologia de Pentest, não apenas listar ações.\n\n"
+
+            f"DIRETRIZES DA FERRAMENTA ATUAL ({tool}):\n{tip_spec}\n\n"
+
+            "10. Considere RCE apenas quando os logs demonstrarem claramente execução remota de comandos.\n"
+
+            "11. Se houver evidência clara de execução remota de comandos, o primeiro passo deve envolver a aba Netcat.\n\n"
+
+            "12. Quando sugerir um comando manual, adicione obrigatoriamente:\n"
+            "*(Ative a chave 'Modo Comando Manual' na barra lateral para colar e executar este comando exato)*"
+)
+        user = f"Fase atual: {phase}\nFerramenta usada: {tool}\nÚltimo comando: {command}\nLogs recebidos:\n{logs}"
         return await self._ask_ai(system, user, max_tokens=600, cache_key=h)
 
-    # ─── BOTÃO: Adicionar ao Relatório ───────────────────────────────────
+    #BOTÃO: Adicionar ao Relatório 
     async def generate_formal_report(self, tool, logs, command=""):
         logs = normalize_logs(logs, tool)
         h = self._make_key("report", f"{tool}:{command}", logs)
@@ -163,14 +336,14 @@ class AIContext:
         )
         return await self._ask_ai(system, f"Comando: {command}\nLogs da ferramenta {tool}:\n{logs}", max_tokens=2000, cache_key=h)
 
-    # ─── BOTÃO: Gerar PDF (Sumário Executivo) ────────────────────────────
+    #BOTÃO: Gerar PDF (Sumário Executivo)
     async def generate_executive_summary(self, findings):
-        # Para o sumário, o cache é baseado nos comandos presentes nos findings
         cmds = "|".join([f.get("command", "") for f in findings]) if isinstance(findings, list) else str(findings)
         h = self._make_key("summary", cmds)
         system = (
             "Você é um CISO. Crie um sumário executivo curto (máx 3 parágrafos) "
             "focado em risco e recomendações. Use Português do Brasil."
+            "Coloque os subtitulos em negrito "
         )
         return await self._ask_ai(system, f"Achados:\n{findings}", max_tokens=1000, cache_key=h)
 

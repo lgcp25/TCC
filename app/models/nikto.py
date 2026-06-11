@@ -5,25 +5,39 @@ class Nikto(BaseTool):
     @property
     def name(self) -> str: return "Nikto"
     @property
-    def binary(self) -> str: return "nikto"
+    def binary(self) -> str: return "/opt/nikto/program/nikto.pl"
     @property
     def docker_service(self) -> str: return "pentester"
 
-    def build_command(self, host, port, ssl_switch, tuning, plugins, user_agent, json_switch, extra_params, raw_cmd=None):
+    def build_command(self, host, port, ssl_switch, tuning, user_agent, raw_cmd=None):
         if raw_cmd:
             import shlex
             parts = shlex.split(raw_cmd)
-            if parts[0] == self.binary: return parts
-            return [self.binary] + parts
+            # Se o usuário digitou "nikto ..." no comando livre, substitui pelo caminho real
+            if parts[0] == "nikto": parts[0] = self.binary
+            return parts
+
+        tuning_map = {
+            "Foco em execução de comandos (Command Execution)": "8",
+            "Foco em Injeções (SQLi, XSS, Command Injection)": "149",
+            "Foco em Arquivos Vazados (Backups, Configs)": "3bg",
+            "Foco em Configurações Erradas e Headers": "02",
+            "Varredura Completa (Padrão)": ""
+        }
+        actual_tuning = tuning_map.get(tuning, "")
+
+        agent_map = {
+            "Win11 Chrome":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "Mac Chrome":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            "Linux Firefox":"Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0"
+        }
+        actual_agent = agent_map.get(user_agent, "")
 
         cmd = [self.binary, "-h", host]
         
         if port: cmd += ["-p", port]
         if ssl_switch: cmd += ["-ssl"]
-        if tuning: cmd += ["-Tuning", tuning]
-        if plugins: cmd += ["-Plugins", plugins]
-        if user_agent: cmd += ["-useragent", user_agent]
-        if json_switch: cmd += ["-Format", "json", "-o", "/results/nikto_report.json"]
-        if extra_params: cmd += shlex.split(extra_params)
+        if actual_tuning: cmd += ["-Tuning", actual_tuning]
+        if actual_agent: cmd += ["-useragent", actual_agent]
         
         return cmd

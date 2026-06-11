@@ -1,6 +1,8 @@
 import flet as ft
 import os
+import shutil
 import datetime
+import tempfile
 import subprocess
 from config import THEME_BG, THEME_CARD, THEME_BORDER, THEME_INPUT_BG, THEME_TERMINAL_BG, INPUT_STYLE
 
@@ -16,22 +18,19 @@ class ToolTab:
         self.help_text = help_text
         self.last_command = ""
 
-        # Estilos dos títulos
         self.TEXT_TITLE = ft.TextStyle(
             size=14, 
             weight="bold", 
             color="white",
         )
         
-        # Terminal
-        # Terminal: TextField perfeito para seleção (com fundo transparente)
         self.terminal_output = ft.TextField(
             value="",
             multiline=True,
             read_only=True,
             expand=True,
-            border=ft.InputBorder.NONE, # Remove a borda padrão
-            filled=False,               # Remove o fundo cinza que apareceu da outra vez!
+            border=ft.InputBorder.NONE, 
+            filled=False,              
             text_size=13,
             text_style=ft.TextStyle(font_family="RobotoMono", color="#2DD4BF"),
             content_padding=0,
@@ -60,10 +59,8 @@ class ToolTab:
             border=ft.border.all(1, THEME_BORDER)
         )
 
-        # Coluna da esquerda (configurações)
         self.left_col = ft.Column(spacing=20, scroll=ft.ScrollMode.AUTO, expand=True)
         
-        # Campos base para comando manual
         self.free_cmd_switch = ft.Switch(
             label="Modo Comando Manual", 
             value=False, 
@@ -76,7 +73,6 @@ class ToolTab:
             **INPUT_STYLE
         )
 
-        # Callback para ligar/desligar modo manual
         self.free_cmd_switch.on_change = self._toggle_free_mode_base
 
         # Cabeçalho
@@ -165,7 +161,6 @@ class ToolTab:
 
     @property
     def terminal_buffer(self):
-        # Retorna o valor do TextField como se fosse o buffer antigo
         return self.terminal_output.value or ""
 
     def _toggle_free_mode_base(self, e):
@@ -173,14 +168,12 @@ class ToolTab:
         is_free = self.free_cmd_switch.value
         self.raw_cmd.disabled = not is_free
         
-        # Desabilita todos os outros campos na left_col (excluindo os do modo manual e o título)
         for control in self.left_col.controls:
             if control not in [self.free_cmd_switch, self.raw_cmd] and hasattr(control, 'disabled'):
                 control.disabled = is_free
                 
         self.left_col.update()
 
-    # Método helper para as abas adicionarem o divisor e os controles manuais no fim do left_col
     def add_manual_controls(self):
         self.left_col.controls.extend([
             ft.Divider(color=THEME_BORDER),
@@ -188,14 +181,11 @@ class ToolTab:
             self.raw_cmd
         ])
 
-    # Abre janela para salvar relatório
     async def open_doc(self, e):
         try: subprocess.Popen(["xdg-open", self.doc_url])
         except: await self.app.page.launch_url(self.doc_url)
-
-    # Mostra ajuda no terminal
+        
     async def show_help(self, e):
-        """Exibe o guia de uso da ferramenta no terminal"""
         await self.clear_terminal()
         help_header = f"--- GUIA DE USO: {self.name} ---\n\n"
         if not self.help_text:
@@ -205,7 +195,6 @@ class ToolTab:
         
         await self.write_terminal(help_header + content + "\n\n" + "-"*30 + "\n")
 
-    # Escreve na IA
     async def write_ai(self, text):
         try:
             md = ft.Markdown(text, selectable=True, extension_set=ft.MarkdownExtensionSet.GITHUB_WEB)
@@ -213,7 +202,6 @@ class ToolTab:
         except: self.ai_output.controls.append(ft.Text(text, color="blueGrey100", size=13))
         self.ai_output.update()
 
-    # Analisa resultados
     async def explain(self, e):
         if not self.terminal_buffer.strip(): return self.show_popup("Aviso", "Terminal vazio.")
         from services.ai_service import ai_service
@@ -250,7 +238,9 @@ class ToolTab:
         self.show_popup("Sucesso", "Achado adicionado ao relatório.")
 
     async def finalize_pdf(self, e):
-        if not self.app.report_findings: return self.show_popup("Erro", "Relatório vazio.")
+        if not self.app.report_findings:
+            return self.show_popup("Erro", "Relatório vazio. Use 'Adicionar ao Relatório' primeiro.")
+
         from services.ai_service import ai_service
         from services.pdf_service import generate_pentest_pdf
 
@@ -258,27 +248,24 @@ class ToolTab:
         summary = await ai_service.generate_executive_summary(self.app.report_findings)
         self.app.set_loading("Preparando PDF...")
 
-        # Prepara o PDF em arquivo temporário primeiro
         now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         default_name = f"Relatorio_Vaporeon_{now}.pdf"
 
         try:
-            from config import DOCS_DIR
-            temp_path = os.path.join(DOCS_DIR, default_name)
+            temp_path = os.path.join(tempfile.gettempdir(), default_name)
             generate_pentest_pdf(self.app.report_findings, temp_path, summary_text=summary)
         except Exception as err:
             self.app.set_loading("", False)
             return self.show_popup("Erro no PDF", str(err))
 
-        # Diálogo nativo multiplataforma para o usuário escolher onde salvar
-        import shutil
         save_path = None
+        is_fallback = False
         try:
             import tkinter as tk
             from tkinter import filedialog
             root = tk.Tk()
-            root.withdraw()  # Esconde a janela principal do tkinter
-            root.attributes('-topmost', True)  # Garante que o diálogo fique na frente
+            root.withdraw()
+            root.attributes('-topmost', True)
             save_path = filedialog.asksaveasfilename(
                 title="Salvar Relatório de Pentest",
                 initialfile=default_name,
@@ -286,23 +273,50 @@ class ToolTab:
                 filetypes=[("PDF files", "*.pdf"), ("Todos os arquivos", "*.*")]
             )
             root.destroy()
-        except Exception:
-            pass  # Se tkinter falhar, usa o caminho padrão
+        except Exception as tk_err:
+            print(f"[PDF] Falha ao abrir diálogo salvar (tkinter): {tk_err}")
+            try:
+                downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
+                if not os.path.exists(downloads_dir):
+                    downloads_dir = os.path.expanduser("~")
+                save_path = os.path.join(downloads_dir, default_name)
+                is_fallback = True
+            except Exception as fallback_err:
+                print(f"[PDF] Falha ao definir caminho fallback: {fallback_err}")
+                save_path = None
 
-        if save_path:
-            if not save_path.endswith(".pdf"):
-                save_path += ".pdf"
-            if save_path != temp_path:
-                try:
-                    shutil.copy2(temp_path, save_path)
-                except Exception as err:
-                    self.app.set_loading("", False)
-                    return self.show_popup("Erro ao salvar", str(err))
+        if not save_path:
+            try:
+                os.remove(temp_path)
+            except:
+                pass
+            self.app.set_loading("", False)
+            self.show_popup("Cancelado", "Exportação do PDF cancelada pelo usuário.")
+            return
 
-        final_path = save_path or temp_path
+        if not save_path.endswith(".pdf"):
+            save_path += ".pdf"
+
+        try:
+            shutil.copy2(temp_path, save_path)
+            try:
+                os.remove(temp_path)
+            except:
+                pass
+        except Exception as err:
+            self.app.set_loading("", False)
+            return self.show_popup("Erro ao salvar", str(err))
+
         self.app.report_findings = []
         self.app.set_loading("", False)
-        self.show_popup("🏆 Relatório Gerado", f"Salvo em: {final_path}")
+        
+        if is_fallback:
+            self.show_popup(
+                "Relatório Gerado (Fallback)", 
+                f"Não foi possível abrir a janela para escolher a pasta. O relatório foi salvo automaticamente em:\n{save_path}"
+            )
+        else:
+            self.show_popup("Relatório Gerado", f"Salvo em: {save_path}")
 
     def show_popup(self, title, message):
         def close_dlg(e): dlg.open = False; self.app.page.update()
@@ -318,11 +332,9 @@ class ToolTab:
         import subprocess
         
         try:
-            # Compatibilidade Multiplataforma
             sistema = platform.system()
             
             if sistema == "Linux":
-                # Tenta xclip no Linux
                 try:
                     process = subprocess.Popen(['xclip', '-selection', 'clipboard'], stdin=subprocess.PIPE)
                     process.communicate(input=self.terminal_buffer.encode('utf-8'))
@@ -330,7 +342,6 @@ class ToolTab:
                     self.app.page.clipboard = self.terminal_buffer
                     
             elif sistema == "Windows":
-                # Tenta clip.exe no Windows
                 try:
                     process = subprocess.Popen(['clip'], stdin=subprocess.PIPE)
                     process.communicate(input=self.terminal_buffer.encode('utf-8'))
@@ -338,64 +349,42 @@ class ToolTab:
                     self.app.page.clipboard = self.terminal_buffer
             
             else:
-                # Fallback geral do Flet para outros (Mac, etc)
                 self.app.page.clipboard = self.terminal_buffer
             
             self.app.page.update()
-            self.show_snack(f"📋 {len(self.terminal_buffer)} caracteres copiados!", "blue")
+            self.show_snack(f"{len(self.terminal_buffer)} caracteres copiados!", "blue")
             
         except Exception as err:
             self.show_snack("Erro ao copiar. Selecione manualmente no terminal.", "red900")
 
-    # Método que escreve no terminal
     async def write_terminal(self, text, force_update=False):
         import time
         import re
         
-        # Filtro Silenciador para as mensagens de criação do Docker
         if "Container docker-pentester" in text:
             text = re.sub(r"Container docker-pentester-run-[a-z0-9]+ (Creating|Created)[ \r\n]*", "", text)
 
-        # Se o texto ficou vazio, não faz nada
         if not text: return
 
-        
-        # Adiciona ao valor do campo de texto
         if self.terminal_output.value is None:
             self.terminal_output.value = ""
         self.terminal_output.value += text
         
-        # Otimização: Só chama o update() se já passou 100ms
         current_time = time.time()
         if force_update or not hasattr(self, "_last_terminal_update") or (current_time - self._last_terminal_update) > 0.1:
             self.terminal_output.update()
             self._last_terminal_update = current_time
 
-
-
-
-
-
-
-    # Método que limpa o output da IA e atualiza a view da IA
     async def clear_ai(self): 
         self.ai_output.controls.clear() 
         self.ai_output.update()
-
-    # Método que limpa o buffer e o output do terminal e atualiza a view do terminal
-    # Método que limpa o terminal
     async def clear_terminal(self): 
         self.terminal_output.value = "" 
         self.terminal_output.update()
 
-
-
-    
-    # Método que cancela o processo
     async def cancel(self, e):
         self.app.cancel_process(on_output=self.write_terminal, tab=self)
         
-    # Método que exibe uma snackbar com a mensagem e a cor informadas
     def show_snack(self, m, c):
         sn = ft.SnackBar(ft.Text(m, color="white"), bgcolor=c) 
         self.app.page.snack_bar = sn

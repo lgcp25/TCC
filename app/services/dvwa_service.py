@@ -7,8 +7,7 @@ from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
-# Como o Python roda no host (fora do container), ele não consegue acessar 'http://dvwa' diretamente sem um proxy.
-# Para evitar que o DVWA invalide o cookie por 'Host' diferente, vamos forçar o header Host durante o login.
+
 DVWA_URL = "http://localhost:8081"
 
 
@@ -21,15 +20,11 @@ def _get_token(session, url):
 def _init_dvwa_sync():
     """Lógica síncrona para inicializar o DVWA. Roda em thread separada."""
     session = requests.Session()
-    # Engana o DVWA para ele achar que a requisição veio do container interno, validando a sessão
     session.headers.update({"Host": "dvwa"})
-    
-    # Configura retry para esperar o contêiner subir
     retries = Retry(total=5, backoff_factor=2, status_forcelist=[ 500, 502, 503, 504 ])
     session.mount('http://', HTTPAdapter(max_retries=retries))
     
     try:
-        # 1. Checa se a página de login está acessível (aguarda subir)
         logger.info("Aguardando DVWA iniciar na porta 8081...")
         login_url = f"{DVWA_URL}/login.php"
         token = _get_token(session, login_url)
@@ -38,7 +33,6 @@ def _init_dvwa_sync():
             logger.warning("DVWA online, mas token CSRF não encontrado. Pode já estar logado.")
             return False
 
-        # 2. Login
         logger.info("Realizando Auto-Login no DVWA...")
         login_data = {
             "username": "admin",
@@ -48,7 +42,6 @@ def _init_dvwa_sync():
         }
         session.post(login_url, data=login_data)
         
-        # 3. Setup do Banco de Dados
         logger.info("Criando/Resetando Banco de Dados do DVWA...")
         setup_url = f"{DVWA_URL}/setup.php"
         setup_token = _get_token(session, setup_url)
@@ -59,7 +52,6 @@ def _init_dvwa_sync():
             }
             session.post(setup_url, data=setup_data)
         
-        # 4. Baixar a Segurança para "Low" (para os testes funcionarem)
         logger.info("Configurando Segurança do DVWA para 'Low'...")
         sec_url = f"{DVWA_URL}/security.php"
         sec_token = _get_token(session, sec_url)
@@ -73,7 +65,6 @@ def _init_dvwa_sync():
             
         logger.info("DVWA pronto para Pentest!")
         
-        # Retorna os cookies necessários para as outras ferramentas
         cookies = session.cookies.get_dict()
         return {
             "PHPSESSID": cookies.get("PHPSESSID"),
@@ -88,9 +79,5 @@ def _init_dvwa_sync():
         return None
 
 async def wait_and_init_dvwa():
-    """
-    Inicia o banco de dados do DVWA e faz login de forma assíncrona.
-    Aguardará alguns segundos para dar tempo ao Docker de subir a imagem.
-    """
-    await asyncio.sleep(5)  # Dá um tempo pro container respirar
+    await asyncio.sleep(5)
     return await asyncio.to_thread(_init_dvwa_sync)

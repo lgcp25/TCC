@@ -9,30 +9,22 @@ class Netcat(BaseTool):
     @property
     def docker_service(self) -> str: return "pentester"
 
-    def build_command(self, mode, host, port, file_path, raw_cmd, extra_params):
-        if mode == "Raw Command (avançado)":
-            if not raw_cmd: raise ValueError("Você deve fornecer o comando Raw.")
-            return [self.binary] + shlex.split(raw_cmd)
+    def build_command(self, mode, host, port, raw_cmd=None):
+        if raw_cmd:
+            import shlex
+            parts = shlex.split(raw_cmd)
+            if parts[0] == "nc": parts[0] = self.binary
+            return parts
             
         cmd = [self.binary]
         
-        if mode == "Escutar (servidor)":
+        if mode == "Ouvir Porta Local (Servidor / Reverse Shell)":
             cmd += ["-lvnp", port]
-        elif mode == "Conectar (cliente)":
-            if not host: raise ValueError("Host é obrigatório para conectar.")
+        elif mode == "Conectar a um Alvo (Cliente / Bind Shell)":
+            if not host: raise ValueError("Host (Alvo) é obrigatório para conectar.")
             cmd += ["-v", host, port]
-        elif mode == "Banner Grab":
-            if not host: raise ValueError("Host é obrigatório para conectar.")
+        elif mode == "Testar Porta / Banner Grabbing (Rápido)":
+            if not host: raise ValueError("Host (Alvo) é obrigatório para conectar.")
             cmd += ["-v", "-w", "5", host, port]
-        elif mode == "Enviar arquivo":
-            if not host: raise ValueError("Host é obrigatório para enviar.")
-            cmd += ["-v", host, port]
-            # Redirecionamento não suportado nativamente pelo subprocess_exec sem shell
-            raise NotImplementedError("Envio de arquivos não é suportado pelo wrapper Docker atualmente.")
-        elif mode == "Receber arquivo":
-            cmd += ["-lvnp", port]
-            raise NotImplementedError("Recebimento de arquivos não é suportado pelo wrapper Docker atualmente.")
             
-        if extra_params: cmd += shlex.split(extra_params)
-        
         return cmd

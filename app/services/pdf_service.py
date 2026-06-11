@@ -1,13 +1,11 @@
 from fpdf import FPDF
 import datetime
-import os
-import re
+
 
 class PentestPDF(FPDF):
     def header(self):
-        # Cabeçalho Formal e Sóbrio
         self.set_font('Arial', 'B', 15)
-        self.set_text_color(0, 0, 0) # Preto total
+        self.set_text_color(0, 0, 0) 
         self.cell(0, 10, 'VAPOREON PENTESTER SUITE - RELATÓRIO TÉCNICO', 0, 1, 'C')
         self.set_font('Arial', 'I', 9)
         self.set_text_color(50, 50, 50)
@@ -20,38 +18,65 @@ class PentestPDF(FPDF):
         self.set_y(-15)
         self.set_font('Arial', 'I', 8)
         self.set_text_color(100, 100, 100)
-        self.cell(0, 10, f'VaporeonAI Security Report - Página {self.page_no()} / {{nb}}', 0, 0, 'C')
+        self.cell(0, 10, f'RELATÓRIO TÉCNICO - Página {self.page_no()} / {{nb}}', 0, 0, 'C')
 
     def add_executive_summary(self, summary_text):
         self.set_font('Arial', 'B', 14)
-        self.set_text_color(0, 0, 0) # Título Preto
+        self.set_text_color(0, 0, 0) 
         self.cell(0, 10, '1. SUMÁRIO EXECUTIVO', 0, 1, 'L')
         self.ln(2)
         self.set_font('Arial', '', 11)
         self.set_text_color(0, 0, 0)
         
-        # Limpeza para o sumário
-        clean_summary = self._clean_markdown(summary_text)
-        self.multi_cell(0, 6, clean_summary)
+        self.add_formatted_multicell(summary_text, regular_font_size=11, bold_font_size=11)
         self.ln(10)
 
-    def _clean_markdown(self, text):
-        # Remove asteriscos duplos (bold)
-        text = text.replace('**', '')
-        # Tenta substituir marcadores de lista (* ou -) por numeração simples
+    def add_formatted_multicell(self, text, regular_font_size=10, bold_font_size=10):
         lines = text.split('\n')
-        new_lines = []
+        processed_lines = []
         list_count = 1
         for line in lines:
             trimmed = line.strip()
             if trimmed.startswith('* ') or trimmed.startswith('- '):
-                new_lines.append(f"{list_count}. {trimmed[2:]}")
+                processed_lines.append((f"{list_count}. {trimmed[2:]}", False))
                 list_count += 1
             else:
-                new_lines.append(line)
-                if not trimmed: list_count = 1 # Reseta contador em parágrafos novos
-        
-        return "\n".join(new_lines).replace('###', '').replace('🔴', '[!]').replace('🟠', '[+]').replace('🟡', '[-]').replace('🟢', '[*]')
+
+                is_bold = False
+                clean_line = line
+                if trimmed.startswith('###'):
+                    is_bold = True
+                    clean_line = trimmed.replace('###', '').strip()
+                elif trimmed.startswith('**') and (trimmed.endswith('**') or trimmed.endswith('**:') or '**:' in trimmed):
+                    is_bold = True
+                    clean_line = trimmed.replace('**', '').strip()
+                elif (trimmed.endswith(':') and len(trimmed.split()) <= 5) and not trimmed.startswith('http'):
+                    is_bold = True
+                    clean_line = trimmed
+                
+            
+                if not trimmed:
+                    list_count = 1
+                    
+                processed_lines.append((clean_line, is_bold))
+
+        for line_text, is_bold in processed_lines:
+            line_text = line_text.replace('🔴', '[!]').replace('🟠', '[+]').replace('🟡', '[-]').replace('🟢', '[*]')
+            line_text = line_text.replace('**', '')
+            
+            trimmed = line_text.strip()
+            if not trimmed:
+                self.ln(3)
+                continue
+                
+            self.set_x(self.l_margin)
+            
+            if is_bold:
+                self.set_font('Arial', 'B', bold_font_size)
+                self.multi_cell(self.epw, 6, line_text)
+            else:
+                self.set_font('Arial', '', regular_font_size)
+                self.multi_cell(self.epw, 6, line_text)
 
     def add_finding(self, index, tool_name, analysis, command="N/A"):
         self.set_font('Arial', 'B', 12)
@@ -68,8 +93,7 @@ class PentestPDF(FPDF):
         self.set_font('Arial', '', 10)
         self.set_text_color(0, 0, 0)
         
-        clean_analysis = self._clean_markdown(analysis)
-        self.multi_cell(0, 6, clean_analysis)
+        self.add_formatted_multicell(analysis, regular_font_size=10, bold_font_size=10)
         self.ln(10)
 
 def generate_pentest_pdf(findings, output_path, summary_text="Relatório técnico consolidado."):
@@ -77,7 +101,6 @@ def generate_pentest_pdf(findings, output_path, summary_text="Relatório técnic
     pdf.alias_nb_pages()
     pdf.add_page()
     
-    # Capa em tons de cinza e preto
     pdf.ln(60)
     pdf.set_font('Arial', 'B', 28)
     pdf.set_text_color(0, 0, 0)
@@ -86,11 +109,9 @@ def generate_pentest_pdf(findings, output_path, summary_text="Relatório técnic
     pdf.cell(0, 10, 'Auditoria de Segurança - VaporeonAI', 0, 1, 'C')
     pdf.ln(80)
     
-    # Próxima Página: Sumário Executivo
     pdf.add_page()
     pdf.add_executive_summary(summary_text)
     
-    # Detalhes Técnicos
     pdf.set_font('Arial', 'B', 14)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(0, 10, '2. DETALHES TÉCNICOS POR FERRAMENTA', 0, 1, 'L')

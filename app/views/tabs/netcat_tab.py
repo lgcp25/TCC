@@ -14,70 +14,215 @@ class NetcatTab(ToolTab):
             ft.Icons.CABLE,
             ft.Icons.SENSORS,
             description="O Netcat é o 'Canivete Suíço' das redes. Ele pode ler e escrever dados através de conexões de rede TCP/UDP. É vital na Pós-Exploração para escutar ou receber Reverse Shells.",
-            help_text="""GUIA TÉCNICO NETCAT (NC):
+            help_text="""GUIA TÉCNICO COMPLETO DO NETCAT (NC):
 
-A ferramenta mais versátil para conexões de rede diretas e arbitrárias.
+╔══════════════════════════════════════════════════════════════╗
+║                      NETCAT - AJUDA                         ║
+╚══════════════════════════════════════════════════════════════╝
 
-1. EXPLICAÇÃO DOS CAMPOS:
-   - MODO LISTENER (-l -p): Abre uma porta no SEU computador. Você fica esperando o alvo se conectar a você (técnica de Reverse Shell).
-   - MODO CLIENTE: Você se conecta a uma porta aberta no alvo (Bind Shell ou teste de porta).
-   - HOST/PORTA: O endereço e a porta para a comunicação.
-   - ARQUIVO: Permite ler o conteúdo de um arquivo e enviá-lo pelo túnel do Netcat ou salvar o que for recebido.
+O Netcat (nc) é uma ferramenta de comunicação de rede.
 
-2. EXEMPLOS DE COMANDO GERADO:
-   - Abrir Ouvinte na porta 4444: nc -lvp 4444
-   - Conectar a um Servidor Web: nc 192.168.1.1 80
-   - Receber um arquivo: nc -lvp 4444 > recebido.txt
+Ele permite:
 
-3. DICA: 
-   O Netcat é a base do 'Exfiltração de Dados'. Ele é simples, leve e está presente em quase todos os sistemas Linux por padrão, tornando-o uma ferramenta furtiva e poderosa."""
-        )
+• Abrir conexões TCP e UDP
+• Escutar portas locais
+• Testar serviços remotos
+• Capturar banners
+• Transferir dados entre hosts
+• Receber conexões de aplicações remotas
+
+É conhecido como o "Canivete Suíço das Redes".
+
+═══════════════════════════════════════════════════════════════
+[1] MODO DE OPERAÇÃO
+═══════════════════════════════════════════════════════════════
+
+[CLIENTE]
+Conectar a um Alvo (Bind Shell)
+
+Seu computador inicia a conexão.
+
+Fluxo:
+
+Seu PC ─────► Alvo
+
+Utilizado quando o serviço remoto já está
+aceitando conexões.
+
+Exemplos:
+
+• Testar serviços TCP
+• Conectar em portas abertas
+• Acessar aplicações de rede
+
+────────────────────────────────────────────
+
+[SERVIDOR]
+Ouvir Porta Local (Reverse Shell)
+
+Seu computador fica aguardando conexões.
+
+Fluxo:
+
+Seu PC ◄───── Alvo
+
+Muito utilizado em laboratórios para
+receber conexões originadas por sistemas
+remotos.
+
+Exemplos:
+
+• Receber conexões de teste
+• Laboratórios de pós-exploração
+• Simulações de acesso remoto
+
+────────────────────────────────────────────
+
+[BANNER GRABBING]
+Testar Porta / Banner Grabbing
+
+Conecta rapidamente ao serviço e tenta
+capturar informações iniciais.
+
+Pode revelar:
+
+• Nome do serviço
+• Versão
+• Mensagens de boas-vindas
+• Tecnologias utilizadas
+
+Exemplos:
+
+SSH:
+OpenSSH_8.9
+
+FTP:
+vsFTPd 3.0.3
+
+HTTP:
+Apache/2.4.57
+
+═══════════════════════════════════════════════
+[2] ALVO
+═══════════════════════════════════════════════
+
+IP ou domínio do sistema remoto.
+
+Exemplos:
+
+• 192.168.1.10
+• scanme.nmap.org
+• empresa.local
+
+IMPORTANTE:
+
+No modo "Ouvir Porta Local"
+este campo deve ficar vazio.
+
+═══════════════════════════════════════════════
+[3] PORTA
+═══════════════════════════════════════════════
+
+Porta utilizada para comunicação.
+
+Portas comuns:
+
+21    FTP
+22    SSH
+23    Telnet
+25    SMTP
+53    DNS
+80    HTTP
+110   POP3
+143   IMAP
+443   HTTPS
+3306  MySQL
+5432  PostgreSQL
+8080  HTTP Alternativo
+
+═══════════════════════════════════════════════
+[COMO INTERPRETAR OS RESULTADOS]
+═══════════════════════════════════════════════
+
+[CONEXÃO ESTABELECIDA]
+O serviço está acessível.
+
+────────────────────────────────────────────
+
+[CONNECTION REFUSED]
+A máquina respondeu, mas não existe
+serviço escutando na porta.
+
+────────────────────────────────────────────
+
+[TIMEOUT]
+Nenhuma resposta recebida.
+
+Possíveis causas:
+
+• Firewall
+• Porta filtrada
+• Host indisponível
+
+────────────────────────────────────────────
+
+[BANNER CAPTURADO]
+Informações do serviço foram obtidas.
+
+═══════════════════════════════════════════════
+[FLUXO RECOMENDADO NO VAPOREON]
+═══════════════════════════════════════════════
+
+1. Nmap
+   Descobrir portas abertas.
+
+2. Gobuster / Nikto
+   Enumerar aplicações web.
+
+3. SQLMap
+   Testar parâmetros suspeitos.
+
+4. Netcat
+   Validar conectividade e interagir
+   com serviços encontrados.
+
+═══════════════════════════════════════════════
+[DICA DE OURO]
+═══════════════════════════════════════════════
+
+O Netcat é excelente para entender como
+os protocolos funcionam.
+
+Antes de tentar tarefas avançadas,
+utilize o modo "Testar Porta" para observar
+como serviços reais respondem a conexões.
+"""
+)
         self.netcat = Netcat()
 
         input_style = INPUT_STYLE
 
         # Controles
         self.mode = ft.Dropdown(
-            label="Modo de Operação",
-            value="Conectar (cliente)",
+            label="Como o Netcat deve agir?",
+            value="Conectar a um Serviço Remoto (Cliente)",
             options=[
-                ft.dropdown.Option("Conectar (cliente)"),
-                ft.dropdown.Option("Escutar (servidor)"),
-                ft.dropdown.Option("Banner Grab"),
-                ft.dropdown.Option("Enviar arquivo"),
-                ft.dropdown.Option("Receber arquivo"),
-                ft.dropdown.Option("Raw Command (avançado)"),
+                ft.dropdown.Option("Conectar a um Serviço Remoto (Cliente)"),
+                ft.dropdown.Option("Ouvir Porta Local (Listener)"),
+                ft.dropdown.Option("Testar Porta e Capturar Banner"),
             ],
             **input_style
         )
 
         self.host = ft.TextField(
-            label="Host (IP / domínio)",
+            label="Alvo (IP ou Domínio - Deixe vazio se for Ouvir)",
             value="",
             **input_style
         )
 
         self.port = ft.TextField(
-            label="Porta",
+            label="Porta de Comunicação (ex: 4444 ou 80)",
             value="4444",
-            **input_style
-        )
-
-        self.file_path = ft.TextField(
-            label="Arquivo (para transferência)",
-            value="",
-            **input_style
-        )
-
-        self.raw_cmd = ft.TextField(
-            label="Raw Netcat Command",
-            value="",
-            **input_style
-        )
-
-        self.extra_params = ft.TextField(
-            label="Parâmetros extras",
-            value="",
             **input_style
         )
 
@@ -87,17 +232,13 @@ A ferramenta mais versátil para conexões de rede diretas e arbitrárias.
             self.mode,
             self.host,
             self.port,
-            self.file_path,
-            self.extra_params,
         ])
         self.add_manual_controls()
 
     def reset_fields(self):
-        self.mode.value = "Conectar (cliente)"
+        self.mode.value = "Conectar a um Serviço Remoto (Cliente)"
         self.host.value = ""
-        self.port.value = ""
-        self.file_path.value = ""
-        self.extra_params.value = ""
+        self.port.value = "4444"
         self.free_cmd_switch.value = False
         self.raw_cmd.value = ""
         self.raw_cmd.disabled = True
@@ -109,15 +250,12 @@ A ferramenta mais versátil para conexões de rede diretas e arbitrárias.
         try:
             if self.free_cmd_switch.value:
                 import shlex
-                cmd_list = [self.netcat.binary] + shlex.split(self.raw_cmd.value)
+                cmd_list = shlex.split(self.raw_cmd.value)
             else:
                 cmd_list = self.netcat.build_command(
                     mode=self.mode.value,
                     host=self.host.value,
-                    port=self.port.value,
-                    file_path=self.file_path.value,
-                    raw_cmd="", # O campo raw_cmd antigo não é mais usado desta forma
-                    extra_params=self.extra_params.value
+                    port=self.port.value
                 )
             self.last_command = self.netcat.pretty_command(cmd_list)
             await self.write_terminal(f"[COMANDO] {self.last_command}\n\n")

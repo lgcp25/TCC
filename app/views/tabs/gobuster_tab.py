@@ -14,25 +14,193 @@ class GobusterTab(ToolTab):
             ft.Icons.FOLDER_OPEN,
             ft.Icons.MANAGE_SEARCH,
             description="O Gobuster é uma ferramenta usada para descobrir URLs, diretórios e arquivos escondidos em servidores web via força bruta rápida utilizando wordlists pesadas.",
-            help_text="""GUIA TÉCNICO GOBUSTER:
+            help_text="""GUIA TÉCNICO COMPLETO DO GOBUSTER:
 
-Ferramenta de 'Brute-Force' para descoberta de objetos em servidores.
+╔══════════════════════════════════════════════════════════════╗
+║                      GOBUSTER - AJUDA                       ║
+╚══════════════════════════════════════════════════════════════╝
 
-1. EXPLICAÇÃO DOS CAMPOS:
-   - MODO: 
-     * dir: Busca por pastas e arquivos (usa a flag 'dir -u').
-     * dns: Busca por subdomínios (usa a flag 'dns -d').
-   - WORDLIST (-w): O arquivo de dicionário que contém as tentativas. No Vaporeon, usamos por padrão o /wordlists/common.txt.
-   - EXTENSÕES (-x): Se você definir 'php', o Gobuster testará 'arquivo' e também 'arquivo.php'. Fundamental para encontrar backups (ex: index.php.bak).
-   - STATUS CODES (-s): Define o que é considerado 'encontrado'. 200 é sucesso, 301/302 são redirecionamentos.
+O Gobuster é uma ferramenta de enumeração utilizada para descobrir
+diretórios, arquivos, subdomínios e virtual hosts ocultos.
 
-2. EXEMPLOS DE COMANDO GERADO:
-   - Busca de Diretórios: gobuster dir -u http://dvwa -w /wordlists/common.txt
-   - Busca de Arquivos Sensíveis: gobuster dir -u http://dvwa -w common.txt -x php,txt,bak,zip
-   - Busca de Subdomínios: gobuster dns -d empresa.com -w subdomains.txt
+═══════════════════════════════════════════════════════════════
+[1] ALVO (URL OU DOMÍNIO)
+═══════════════════════════════════════════════════════════════
 
-3. DICA: 
-   O Gobuster é essencial para a 'Enumeração de Superfície'. Muitas vezes a falha não está na página principal, mas em um arquivo esquecido como '/config.php.old' ou '/.env'."""
+O endereço que será analisado.
+
+Exemplos:
+• http://dvwa
+• http://192.168.1.10
+• https://empresa.com
+
+IMPORTANTE:
+Sempre informe http:// ou https://.
+
+═══════════════════════════════════════════════════════════════
+[2] MODO DE OPERAÇÃO
+═══════════════════════════════════════════════════════════════
+
+[DIR] Buscar Pastas e Arquivos
+      Descobre diretórios e arquivos ocultos.
+
+      Exemplos:
+      • /admin
+      • /backup.zip
+      • /config.php
+      • /login
+
+      É o modo mais utilizado durante um pentest web.
+
+[DNS] Descobrir Subdomínios
+      Procura servidores relacionados ao domínio.
+
+      Exemplos:
+      • api.empresa.com
+      • dev.empresa.com
+      • mail.empresa.com
+
+[VHOST] Descobrir Virtual Hosts
+        Procura sites hospedados no mesmo IP.
+
+        Útil quando múltiplos domínios utilizam
+        o mesmo servidor.
+
+═══════════════════════════════════════════════════════════════
+[3] WORDLIST
+═══════════════════════════════════════════════════════════════
+
+Arquivo contendo as palavras que serão testadas.
+
+common.txt
+    Lista básica para reconhecimento rápido.
+
+subdomains.txt
+    Lista focada em descoberta de subdomínios
+    e virtual hosts.
+
+Quanto melhor a wordlist, melhores os resultados.
+
+═══════════════════════════════════════════════════════════════
+[4] THREADS
+═══════════════════════════════════════════════════════════════
+
+Quantidade de requisições simultâneas.
+
+Valores recomendados:
+
+10   = Muito estável
+25   = Conservador
+50   = Equilibrado
+100  = Agressivo
+
+Valores altos podem:
+• Sobrecarregar o alvo
+• Acionar WAFs
+• Gerar bloqueios
+
+═══════════════════════════════════════════════════════════════
+[5] EXTENSÕES
+═══════════════════════════════════════════════════════════════
+
+Utilizado apenas no modo DIR.
+
+Permite procurar arquivos específicos.
+
+Exemplo:
+
+php,bak,zip
+
+A palavra "admin" gera:
+
+• admin.php
+• admin.bak
+• admin.zip
+
+Extensões interessantes:
+
+• php
+• asp
+• aspx
+• jsp
+• txt
+• bak
+• old
+• conf
+• ini
+• sql
+• zip
+• json
+• xml
+• log
+
+═══════════════════════════════════════════════════════════════
+[6] STATUS HTTP DE INTERESSE
+═══════════════════════════════════════════════════════════════
+
+Códigos que serão exibidos nos resultados.
+
+200 = Página encontrada
+301 = Redirecionamento permanente
+302 = Redirecionamento temporário
+401 = Requer autenticação
+403 = Existe, mas acesso negado
+
+DICA:
+Resultados 403 costumam ser extremamente
+interessantes durante a enumeração.
+
+═══════════════════════════════════════════════════════════════
+[7] SEGUIR REDIRECIONAMENTOS
+═══════════════════════════════════════════════════════════════
+
+Quando habilitado, o Gobuster segue páginas
+que redirecionam automaticamente para outro local.
+
+Útil para aplicações modernas.
+
+═══════════════════════════════════════════════════════════════
+[8] COOKIES DE SESSÃO
+═══════════════════════════════════════════════════════════════
+
+Envia automaticamente sua sessão autenticada.
+
+Útil quando:
+
+• Você já está logado
+• O conteúdo só aparece após login
+• O alvo redireciona visitantes para /login
+
+═══════════════════════════════════════════════════════════════
+[9] TIMEOUT
+═══════════════════════════════════════════════════════════════
+
+Tempo máximo de espera por resposta.
+
+Valores recomendados:
+
+5s  = Rede rápida
+10s = Padrão
+20s = Servidores lentos
+
+═══════════════════════════════════════════════════════════════
+[DICA DE OURO]
+═══════════════════════════════════════════════════════════════
+
+Muitos pentests começam encontrando recursos esquecidos:
+
+• /admin
+• /backup
+• /old
+• /test
+• /config.php.bak
+• /database.sql
+• /dev
+
+Nem sempre uma vulnerabilidade aparece logo no início.
+A enumeração detalhada costuma revelar caminhos
+que os desenvolvedores esqueceram de proteger.
+"""
         )
         self.gobuster = Gobuster()
 
@@ -40,62 +208,68 @@ Ferramenta de 'Brute-Force' para descoberta de objetos em servidores.
 
         # Controles
         self.target = ft.TextField(
-            label="URL / Host / Domínio",
+            label="Alvo (URL ou IP)",
             value="http://dvwa",
             **input_style
         )
 
         self.mode = ft.Dropdown(
-            label="Modo",
-            value="dir",
+            label="O que você quer procurar?",
+            value="Buscar Pastas e Arquivos (dir)",
+            on_select = self.disable_status,
             options=[
-                ft.dropdown.Option("dir"),
-                ft.dropdown.Option("dns"),
-                ft.dropdown.Option("vhost"),
-                ft.dropdown.Option("fuzz"),
+                ft.dropdown.Option("Buscar Pastas e Arquivos (dir)"),
+                ft.dropdown.Option("Descobrir Subdomínios (dns)"),
+                ft.dropdown.Option("Descobrir Virtual Hosts (vhost)")
             ],
             **input_style
         )
 
-        self.wordlist = ft.TextField(
-            label="Caminho da Wordlist",
-            value="/usr/share/wordlists/dirb/common.txt",
+        self.wordlist = ft.Dropdown(
+            label="Dicionário / Wordlist (Arquivo com as tentativas)",
+            value="/wordlists/common.txt",
+            options=[
+                ft.dropdown.Option(key="/wordlists/common.txt", text="Diretórios e Arquivos Comuns (common.txt)"),
+                ft.dropdown.Option(key="/wordlists/subdomains.txt", text="Lista de Subdomínios, utilizado para vhost (subdomains.txt)")
+            ],
             **input_style
         )
 
         self.threads = ft.TextField(
-            label="Threads",
+            label="Tarefas Simultâneas (Threads - +Rápido, porém +Barulhento)",
             value="50",
             **input_style
         )
+        
 
         self.extensions = ft.TextField(
-            label="Extensões (php,txt,html)",
-            value="",
+            label="Buscar por extensões (ex: php,txt,bak) - Só p/ Arquivos",
+            value="php,txt,bak,json,zip,sql,xml,log, jsp,aspx,html,htm,conf,ini,old,config",
             **input_style
         )
-
+        
         self.status_codes = ft.TextField(
-            label="Status válidos (200,204,301)",
-            value="",
-            **input_style
-        )
+                label="Status HTTP Considerados Sucesso (ex: 200,301,403)",
+                value="200,300,301,302,307,401,403",
+                **input_style
+            )
+        
 
         self.follow_redirect = ft.Switch(
-            label="Seguir Redirects (-r)",
-            value=False,
+            label="Seguir Redirecionamentos de Página",
+            value=True,
             active_color=ft.Colors.GREEN_400
         )
 
-        self.timeout = ft.TextField(
-            label="Timeout (s)",
-            value="10",
-            **input_style
+        self.use_cookies = ft.Switch(
+            label="Injetar Cookies de Sessão logada (-c)",
+            value=True,
+            active_color=ft.Colors.BLUE_400
         )
 
-        self.extra_params = ft.TextField(
-            label="Parâmetros extras",
-            value="",
+        self.timeout = ft.TextField(
+            label="Tempo máximo de espera pelo servidor (Segundos)",
+            value="10",
             **input_style
         )
 
@@ -109,34 +283,48 @@ Ferramenta de 'Brute-Force' para descoberta de objetos em servidores.
             self.extensions,
             self.status_codes,
             self.follow_redirect,
+            self.use_cookies,
             self.timeout,
-            self.extra_params,
         ])
         self.add_manual_controls()
 
     def reset_fields(self):
         self.target.value = "http://dvwa:80"
-        self.mode.value = "dir"
+        self.mode.value = "Buscar Pastas e Arquivos (dir)"
         self.wordlist.value = "/wordlists/common.txt"
         self.threads.value = "10"
         self.extensions.value = ""
         self.status_codes.value = "200,204,301,302,307,401,403"
         self.follow_redirect.value = False
+        self.use_cookies.value = True
         self.timeout.value = "10"
-        self.extra_params.value = ""
         self.free_cmd_switch.value = False
         self.raw_cmd.value = ""
         self.raw_cmd.disabled = True
         self.left_col.update()
         self.app.page.update()
 
+    async def disable_status(self,e):
+        if self.mode.value == "Descobrir Virtual Hosts (vhost)":
+            self.status_codes.disabled = True
+            self.status_codes.value = "Não aplicável no modo VHost"
+        else:
+            self.status_codes.disabled = False
+            self.status_codes.value = "200,300,301,302,307,401,403"
+        self.left_col.update()
+              
+    
     async def run(self, e):
         await self.clear_terminal()
         try:
             if self.free_cmd_switch.value:
                 import shlex
-                cmd_list = [self.gobuster.binary] + shlex.split(self.raw_cmd.value)
+                cmd_list = shlex.split(self.raw_cmd.value)
             else:
+                cookie_str = ""
+                if self.use_cookies.value:
+                    cookie_str = "; ".join([f"{k}={v}" for k, v in getattr(self.app, 'dvwa_cookies', {}).items()])
+                
                 cmd_list = self.gobuster.build_command(
                     target=self.target.value,
                     mode=self.mode.value,
@@ -146,7 +334,7 @@ Ferramenta de 'Brute-Force' para descoberta de objetos em servidores.
                     status_codes=self.status_codes.value,
                     follow_redirect=self.follow_redirect.value,
                     timeout=self.timeout.value,
-                    extra_params=self.extra_params.value
+                    cookies=cookie_str
                 )
             self.last_command = self.gobuster.pretty_command(cmd_list)
             await self.write_terminal(f"[COMANDO] {self.last_command}\n\n")
