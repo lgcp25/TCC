@@ -48,7 +48,7 @@ Antes de iniciar, certifique-se de possuir:
 ## 1. Clonar o Projeto
 
 ```bash
-git clone <URL_DO_REPOSITORIO>
+git clone https://github.com/lgcp25/TCC.git
 cd vaporeon
 ```
 
