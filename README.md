@@ -135,7 +135,7 @@ Verifique se os serviços estão online:
 Os indicadores devem aparecer em verde.
 
 ---
-Agora siga as instruções do fomrmulário:
+Agora siga as instruções do formulário de avaliação:
 
 [Formulário de avaliação](https://forms.gle/74Ud3zVJTc1XXg1J9)
 
