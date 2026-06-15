@@ -1,10 +1,38 @@
 import subprocess
 import threading
 import os
+import logging
 import asyncio
 import traceback
 from config import DOCKER_DIR
 
+logger = logging.getLogger(__name__)
+
+def docker_init():
+    cwd = DOCKER_DIR
+    try: subprocess.Popen(["docker-compose", "up", "-d"], cwd=DOCKER_DIR)
+    except Exception: subprocess.Popen(["docker", "compose", "up", "-d"], cwd=DOCKER_DIR)
+    
+def restart_environment():
+    try:
+        subprocess.run(
+            ["docker", "compose", "down"],
+            cwd=DOCKER_DIR,
+            check=True
+        )
+
+        subprocess.run(
+            ["docker", "compose", "up", "-d"],
+            cwd=DOCKER_DIR,
+            check=True
+        )
+
+        return True
+
+    except Exception as e:
+        logger.error(f"Erro ao reiniciar ambiente: {e}")
+        return False
+    
 def run_docker_turbo(caller_obj, service, cmd_list, on_output, on_finish=None):
     docker_dir = DOCKER_DIR
     loop = asyncio.get_event_loop()

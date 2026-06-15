@@ -1,4 +1,5 @@
 import flet as ft
+import asyncio
 from config import THEME_CARD, THEME_BORDER
 
 class HeaderPanel(ft.Container):
@@ -18,6 +19,15 @@ class HeaderPanel(ft.Container):
             ft.Row([self.svc_dvwa, ft.Text("DVWA", size=10, color="blueGrey300")], spacing=4),
             ft.Row([self.svc_groq, ft.Text("Groq API", size=10, color="blueGrey300")], spacing=4),
         ], spacing=15)
+        
+        
+        self.reset_enviroment = ft.OutlinedButton(
+            "Reset Lab",
+            icon=ft.Icons.RESTART_ALT,
+            on_click=self.on_reset_environment,
+            height=28,
+            margin=ft.margin.only(top=2)
+        )
 
         self.controller.tool_buttons = {}
         tool_names = ["Nmap", "Gobuster", "Nikto", "SQLmap", "Netcat"]
@@ -49,9 +59,15 @@ class HeaderPanel(ft.Container):
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=2),
             ft.Column([
                 services_panel,
+                self.reset_enviroment,
                 ft.Row([self.status_text, self.loader], spacing=10),
             ], spacing=2, horizontal_alignment=ft.CrossAxisAlignment.END)
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
         self.padding = ft.padding.symmetric(horizontal=20, vertical=5)
         self.bgcolor = THEME_CARD
         self.border = ft.border.only(bottom=ft.border.BorderSide(1, THEME_BORDER))
+        
+    def on_reset_environment(self, e):
+        asyncio.ensure_future(
+            self.controller.reset_env()
+        )

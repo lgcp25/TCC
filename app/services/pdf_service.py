@@ -81,7 +81,7 @@ class PentestPDF(FPDF):
     def add_finding(self, index, tool_name, analysis, command="N/A"):
         self.set_font('Arial', 'B', 12)
         self.set_fill_color(245, 245, 245)
-        self.set_text_color(0, 0, 0) # Preto
+        self.set_text_color(0, 0, 0) 
         self.cell(0, 10, f' Achado #{index}: {tool_name.upper()}', 0, 1, 'L', fill=True)
         
         self.ln(2)

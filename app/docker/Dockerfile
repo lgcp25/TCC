@@ -26,8 +26,5 @@ RUN git clone https://github.com/sqlmapproject/sqlmap.git /opt/sqlmap \
 WORKDIR /app
 
 COPY . .
-RUN useradd -m pentester
-
-USER pentester
 
 CMD ["bash"]

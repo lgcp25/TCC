@@ -3,6 +3,7 @@ import os
 import asyncio
 import subprocess
 import logging
+import services.docker_runner as docker_runner
 from config import THEME_BG, THEME_CARD, THEME_BORDER, DOCKER_DIR
 from views.tabs import (
     NmapTab, GobusterTab, NiktoTab, SqlmapTab, NetcatTab
@@ -63,8 +64,7 @@ class PentesterApp:
         self.set_loading("Iniciando Infraestrutura Docker...", True)
 
         try:
-            try: subprocess.Popen(["docker-compose", "up", "-d"], cwd=DOCKER_DIR)
-            except Exception: subprocess.Popen(["docker", "compose", "up", "-d"], cwd=DOCKER_DIR)
+            docker_runner.docker_init()
             
             from services.dvwa_service import wait_and_init_dvwa
             async def run_setup():
@@ -126,7 +126,6 @@ class PentesterApp:
         self.tab_header.loader.update()
 
     async def run_docker(self, container, cmd, on_output, tab=None):
-        from services.docker_runner import run_docker_turbo
         self.set_loading("Scanner em execução...")
         
         if container == "pentester":
@@ -142,7 +141,42 @@ class PentesterApp:
                 except:
                     pass
                 
-        run_docker_turbo(tab or self, container, cmd, on_output, on_finish=finish_callback)
+        docker_runner.run_docker_turbo(tab or self, container, cmd, on_output, on_finish=finish_callback)
+        
+    async def reset_env(self):
+        self.set_loading("Restaurando ambiente...", True)
+        self.tab_header.svc_pentester.color = "orange"
+        self.tab_header.svc_dvwa.color = "orange"
+
+        self.tab_header.svc_pentester.update()
+        self.tab_header.svc_dvwa.update()
+
+        try:
+            success = await asyncio.to_thread(
+                docker_runner.restart_environment
+            )
+
+            if not success:
+                self.set_loading("", False)
+                return
+
+            await asyncio.sleep(3)
+
+            from services.dvwa_service import wait_and_init_dvwa
+
+            cookies = await wait_and_init_dvwa()
+
+            if cookies:
+                self.dvwa_cookies = cookies
+
+
+        except Exception as e:
+            logger.error(f"Erro ao restaurar ambiente: {e}")
+
+        finally:
+            self.set_loading("", False)
+        
+        
 
     def cancel_process(self, on_output=None, tab=None):
         cancel_process(tab or self, on_output)

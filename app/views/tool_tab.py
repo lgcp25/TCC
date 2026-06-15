@@ -4,6 +4,7 @@ import shutil
 import datetime
 import tempfile
 import subprocess
+from services.ai_service import ai_service
 from config import THEME_BG, THEME_CARD, THEME_BORDER, THEME_INPUT_BG, THEME_TERMINAL_BG, INPUT_STYLE
 
 class ToolTab:
@@ -73,7 +74,7 @@ class ToolTab:
             **INPUT_STYLE
         )
 
-        self.free_cmd_switch.on_change = self._toggle_free_mode_base
+        self.free_cmd_switch.on_change = self.toggle_free_mode_base
 
         # Cabeçalho
         self.header = ft.Row([
@@ -163,7 +164,7 @@ class ToolTab:
     def terminal_buffer(self):
         return self.terminal_output.value or ""
 
-    def _toggle_free_mode_base(self, e):
+    def toggle_free_mode_base(self, e):
 
         is_free = self.free_cmd_switch.value
         self.raw_cmd.disabled = not is_free
@@ -204,7 +205,6 @@ class ToolTab:
 
     async def explain(self, e):
         if not self.terminal_buffer.strip(): return self.show_popup("Aviso", "Terminal vazio.")
-        from services.ai_service import ai_service
         await self.clear_ai()
         self.app.set_loading("IA analisando resultados...")
         ans = await ai_service.analyze_results(self.name, self.terminal_buffer, command=self.last_command)
@@ -213,7 +213,6 @@ class ToolTab:
 
     async def explain_cmd(self, e):
         if not self.last_command: return self.show_popup("Aviso", "Nenhum comando.")
-        from services.ai_service import ai_service
         await self.clear_ai()
         self.app.set_loading("IA explicando comando...")
         ans = await ai_service.explain_command(self.last_command)
@@ -221,7 +220,6 @@ class ToolTab:
         self.app.set_loading("", False)
 
     async def show_tips(self, e):
-        from services.ai_service import ai_service
         await self.clear_ai()
         self.app.set_loading("IA buscando dicas...")
         ans = await ai_service.get_tool_tips(self.name, self.phase, command=self.last_command, logs=self.terminal_buffer)
@@ -230,7 +228,6 @@ class ToolTab:
 
     async def add_to_report(self, e):
         if not self.terminal_buffer.strip(): return self.show_popup("Aviso", "Nada para adicionar.")
-        from services.ai_service import ai_service
         self.app.set_loading("Formatando descoberta...")
         analysis = await ai_service.generate_formal_report(self.name, self.terminal_buffer, command=self.last_command)
         self.app.report_findings.append({"tool": self.name, "analysis": analysis, "command": self.last_command})
@@ -241,7 +238,6 @@ class ToolTab:
         if not self.app.report_findings:
             return self.show_popup("Erro", "Relatório vazio. Use 'Adicionar ao Relatório' primeiro.")
 
-        from services.ai_service import ai_service
         from services.pdf_service import generate_pentest_pdf
 
         self.app.set_loading("Gerando Sumário...")
@@ -325,7 +321,7 @@ class ToolTab:
 
     async def copy_logs(self, e):
         if not self.terminal_buffer.strip():
-            self.show_snack("⚠ Terminal vazio. Nada para copiar.", "amber800")
+            self.show_snack(" Terminal vazio. Nada para copiar.", "amber800")
             return
             
         import platform
@@ -378,6 +374,7 @@ class ToolTab:
     async def clear_ai(self): 
         self.ai_output.controls.clear() 
         self.ai_output.update()
+        
     async def clear_terminal(self): 
         self.terminal_output.value = "" 
         self.terminal_output.update()

@@ -262,7 +262,7 @@ que os desenvolvedores esqueceram de proteger.
         )
 
         self.use_cookies = ft.Switch(
-            label="Injetar Cookies de Sessão logada (-c)",
+            label="Usar Cookies da Sessão DVWA",
             value=True,
             active_color=ft.Colors.BLUE_400
         )
