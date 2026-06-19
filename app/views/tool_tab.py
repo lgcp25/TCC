@@ -4,6 +4,7 @@ import shutil
 import datetime
 import tempfile
 import subprocess
+from utils import copy_to_clipboard, open_url
 from services.ai_service import ai_service
 from config import THEME_BG, THEME_CARD, THEME_BORDER, THEME_INPUT_BG, THEME_TERMINAL_BG, INPUT_STYLE
 
@@ -182,9 +183,9 @@ class ToolTab:
             self.raw_cmd
         ])
 
+    
     async def open_doc(self, e):
-        try: subprocess.Popen(["xdg-open", self.doc_url])
-        except: await self.app.page.launch_url(self.doc_url)
+        await open_url(self.app.page, self.doc_url)
         
     async def show_help(self, e):
         await self.clear_terminal()
@@ -220,6 +221,7 @@ class ToolTab:
         self.app.set_loading("", False)
 
     async def show_tips(self, e):
+        if not self.last_command: return self.show_popup("Aviso", "Nenhum comando.")
         await self.clear_ai()
         self.app.set_loading("IA buscando dicas...")
         ans = await ai_service.get_tool_tips(self.name, self.phase, command=self.last_command, logs=self.terminal_buffer)
@@ -315,43 +317,42 @@ class ToolTab:
             self.show_popup("Relatório Gerado", f"Salvo em: {save_path}")
 
     def show_popup(self, title, message):
-        def close_dlg(e): dlg.open = False; self.app.page.update()
-        dlg = ft.AlertDialog(title=ft.Text(title, weight="bold"), content=ft.Text(message), actions=[ft.TextButton("OK", on_click=close_dlg)])
-        self.app.page.dialog = dlg; dlg.open = True; self.app.page.update()
+
+        def close_dlg(e):
+            dlg.open = False
+            self.app.page.update()
+
+        dlg = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(title, weight="bold"),
+            content=ft.Text(message),
+            actions=[
+                ft.TextButton("OK", on_click=close_dlg)
+            ]
+        )
+
+        self.app.page.show_dialog(dlg)
 
     async def copy_logs(self, e):
         if not self.terminal_buffer.strip():
-            self.show_snack(" Terminal vazio. Nada para copiar.", "amber800")
+            self.show_snack("Terminal vazio. Nada para copiar.", "amber800")
             return
-            
-        import platform
-        import subprocess
-        
-        try:
-            sistema = platform.system()
-            
-            if sistema == "Linux":
-                try:
-                    process = subprocess.Popen(['xclip', '-selection', 'clipboard'], stdin=subprocess.PIPE)
-                    process.communicate(input=self.terminal_buffer.encode('utf-8'))
-                except:
-                    self.app.page.clipboard = self.terminal_buffer
-                    
-            elif sistema == "Windows":
-                try:
-                    process = subprocess.Popen(['clip'], stdin=subprocess.PIPE)
-                    process.communicate(input=self.terminal_buffer.encode('utf-8'))
-                except:
-                    self.app.page.clipboard = self.terminal_buffer
-            
-            else:
-                self.app.page.clipboard = self.terminal_buffer
-            
-            self.app.page.update()
-            self.show_snack(f"{len(self.terminal_buffer)} caracteres copiados!", "blue")
-            
-        except Exception as err:
-            self.show_snack("Erro ao copiar. Selecione manualmente no terminal.", "red900")
+
+        success = copy_to_clipboard(
+            self.terminal_buffer,
+            self.app.page
+        )
+
+        if success:
+            self.show_snack(
+                f"Logs copiados!",
+                "blue"
+            )
+        else:
+            self.show_snack(
+                "Erro ao copiar. Selecione manualmente no terminal.",
+                "red900"
+            )
 
     async def write_terminal(self, text, force_update=False):
         import time
@@ -383,7 +384,11 @@ class ToolTab:
         self.app.cancel_process(on_output=self.write_terminal, tab=self)
         
     def show_snack(self, m, c):
-        sn = ft.SnackBar(ft.Text(m, color="white"), bgcolor=c) 
-        self.app.page.snack_bar = sn
-        sn.open = True 
+        sn = ft.SnackBar(
+            content=ft.Text(m, color="white"),
+            bgcolor=c
+        )
+
+        self.app.page.overlay.append(sn)
+        sn.open = True
         self.app.page.update()

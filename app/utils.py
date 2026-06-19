@@ -1,4 +1,6 @@
 import re
+import platform
+import subprocess
 
 def sanitize(v):
     if v is None:
@@ -66,3 +68,44 @@ def normalize_logs(raw_logs: str, tool: str = "") -> str:
     result = '\n'.join(cleaned).strip()
 
     return result
+
+def copy_to_clipboard(text, page=None):
+    try:
+        sistema = platform.system()
+
+        if sistema == "Linux":
+            try:
+                process = subprocess.Popen(
+                    ["xclip", "-selection", "clipboard"],
+                    stdin=subprocess.PIPE
+                )
+                process.communicate(input=text.encode("utf-8"))
+                return True
+            except Exception:
+                pass
+
+        elif sistema == "Windows":
+            try:
+                process = subprocess.Popen(
+                    ["clip"],
+                    stdin=subprocess.PIPE
+                )
+                process.communicate(input=text.encode("utf-8"))
+                return True
+            except Exception:
+                pass
+
+        if page:
+            page.clipboard = text
+            page.update()
+
+        return True
+
+    except Exception:
+        return False
+
+async def open_url(page, url):
+    try:
+        subprocess.Popen(["xdg-open", url])
+    except Exception:
+        await page.launch_url(url)

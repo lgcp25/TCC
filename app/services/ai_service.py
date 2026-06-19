@@ -203,12 +203,12 @@ class AIContext:
 
     #BOTÃO: Explicar Comando 
     async def explain_command(self, command):
-        """Cache pelo comando completo."""
         if not command:
             return "Nenhum comando para explicar."
         h = self.make_key("explain_cmd", command)
         system = (
             f"{TEACHER_JAMERSON}\n"
+            "`{command}`"
             "Liste cada flag/parâmetro do comando com uma explicação de 1 linha. "
             "Formato: `flag` — o que faz. Sem introdução nem conclusão."
         )

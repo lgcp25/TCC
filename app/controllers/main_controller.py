@@ -60,7 +60,7 @@ class PentesterApp:
                 self.content_area
             ], expand=True, spacing=0)
         )
-
+        
         self.set_loading("Iniciando Infraestrutura Docker...", True)
 
         try:
