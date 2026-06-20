@@ -5,7 +5,8 @@ from models.nikto import Nikto
 
 
 class NiktoTab(ToolTab):
-    def __init__(self, app, name):
+    def __init__(self, app, name, controller):
+        self.controller = controller
         super().__init__(
             app,
             name,
@@ -162,7 +163,6 @@ Use os resultados como ponto de partida para
 aprofundar a análise com outras ferramentas da suíte.
 """
         )
-        self.nikto = Nikto()
 
         input_style = INPUT_STYLE
 
@@ -187,24 +187,24 @@ aprofundar a análise com outras ferramentas da suíte.
 
         self.tuning = ft.Dropdown(
             label="Objetivo da Análise",
-            value="Varredura Completa (Padrão)",
+            value="1",
             options=[
-                ft.dropdown.Option("Varredura Completa (Padrão)"),
-                ft.dropdown.Option("Foco em execução de comandos (Command Execution)"),
-                ft.dropdown.Option("Foco em Injeções (SQLi, XSS, Command Injection)"),
-                ft.dropdown.Option("Foco em Arquivos Vazados (Backups, Configs)"),
-                ft.dropdown.Option("Foco em Configurações Erradas e Headers")
+            ft.dropdown.Option("1", "1. Varredura Completa (Padrão)"),
+            ft.dropdown.Option("2", "2. Foco em execução de comandos (Command Execution)"),
+            ft.dropdown.Option("3", "3. Foco em Injeções (SQLi, XSS, Command Injection)"),
+            ft.dropdown.Option("4", "4. Foco em Arquivos Vazados (Backups, Configs)"),
+            ft.dropdown.Option("5", "5. Foco em Configurações Erradas e Headers")
             ],
             **input_style
         )
 
         self.user_agent = ft.Dropdown(
             label="User-Agent (Identificação enviada ao servidor)",
-            value="Win11 Chrome",
+            value="1",
             options=[
-                ft.dropdown.Option("Win11 Chrome"),
-                ft.dropdown.Option("Mac Chrome"),
-                ft.dropdown.Option("Linux Firefox")
+                ft.dropdown.Option("1","Win11 Chrome"),
+                ft.dropdown.Option("2","Mac Chrome"),
+                ft.dropdown.Option("3","Linux Firefox")
             ],
             **input_style
         )
@@ -224,8 +224,8 @@ aprofundar a análise com outras ferramentas da suíte.
         self.host.value = "dvwa"
         self.port.value = ""
         self.ssl_switch.value = False
-        self.tuning.value = "Varredura Completa (Padrão)"
-        self.user_agent.value = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Vaporeon"
+        self.tuning.value = "1"
+        self.user_agent.value = "1"
         self.free_cmd_switch.value = False
         self.raw_cmd.value = ""
         self.raw_cmd.disabled = True
@@ -233,21 +233,25 @@ aprofundar a análise com outras ferramentas da suíte.
         self.app.page.update()
 
     async def run(self, e):
+
         await self.clear_terminal()
+
         try:
-            if self.free_cmd_switch.value:
-                import shlex
-                cmd_list = shlex.split(self.raw_cmd.value)
-            else:
-                cmd_list = self.nikto.build_command(
-                    host=self.host.value,
-                    port=self.port.value,
-                    ssl_switch=self.ssl_switch.value,
-                    tuning=self.tuning.value,
-                    user_agent=self.user_agent.value
-                )
-            self.last_command = self.nikto.pretty_command(cmd_list)
-            await self.write_terminal(f"[COMANDO] {self.last_command}\n\n")
-            await self.app.run_docker(self.nikto.docker_service, cmd_list, on_output=self.write_terminal, tab=self)
+
+            self.last_command = await self.controller.execute(
+                host=self.host.value,
+                port=self.port.value,
+                ssl_switch=self.ssl_switch.value,
+                tuning=self.tuning.value,
+                user_agent=self.user_agent.value,
+                manual_mode=self.free_cmd_switch.value,
+                raw_command=self.raw_cmd.value,
+                on_output=self.write_terminal,
+                tab=self
+            )
+
         except Exception as err:
-            await self.write_terminal(f"[ERRO] {err}\n")
+
+            await self.write_terminal(
+                f"[ERRO] {err}\n"
+            )

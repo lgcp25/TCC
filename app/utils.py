@@ -109,3 +109,8 @@ async def open_url(page, url):
         subprocess.Popen(["xdg-open", url])
     except Exception:
         await page.launch_url(url)
+
+def format_cookies(cookies_dict):
+    if not cookies_dict:
+        return None
+    return "; ".join([f"{k}={v}" for k, v in cookies_dict.items()])

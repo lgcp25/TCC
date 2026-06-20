@@ -71,3 +71,27 @@ class HeaderPanel(ft.Container):
         asyncio.ensure_future(
             self.controller.reset_env()
         )
+
+    # Métodos chamados pelo controller para atualizar a UI
+
+    def set_loading(self, text: str, visible: bool = True):
+        self.status_text.value = text
+        self.loader.visible = visible
+        self.status_text.update()
+        self.loader.update()
+
+    def set_service_status(self, pentester: bool, dvwa: bool, groq: bool):
+        self.svc_pentester.color = "green" if pentester else "red"
+        self.svc_dvwa.color     = "green" if dvwa     else "red"
+        self.svc_groq.color     = "green" if groq     else "red"
+        self.svc_pentester.update()
+        self.svc_dvwa.update()
+        self.svc_groq.update()
+
+    def set_active_tool(self, active_key: str):
+        for key, btn in self.controller.tool_buttons.items():
+            if key == active_key:
+                btn.style = ft.ButtonStyle(color="white", bgcolor="blue700")
+            else:
+                btn.style = ft.ButtonStyle(color="blueGrey300", bgcolor=ft.Colors.TRANSPARENT)
+            btn.update()

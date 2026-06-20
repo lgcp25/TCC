@@ -18,12 +18,12 @@ class Netcat(BaseTool):
             
         cmd = [self.binary]
         
-        if mode == "Ouvir Porta Local (Servidor / Reverse Shell)":
+        if mode == "1":
             cmd += ["-lvnp", port]
-        elif mode == "Conectar a um Alvo (Cliente / Bind Shell)":
+        elif mode == "2":
             if not host: raise ValueError("Host (Alvo) é obrigatório para conectar.")
             cmd += ["-v", host, port]
-        elif mode == "Testar Porta / Banner Grabbing (Rápido)":
+        elif mode == "3":
             if not host: raise ValueError("Host (Alvo) é obrigatório para conectar.")
             cmd += ["-v", "-w", "5", host, port]
             

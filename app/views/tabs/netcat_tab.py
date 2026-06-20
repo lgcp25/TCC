@@ -5,7 +5,8 @@ from models.netcat import Netcat
 
 
 class NetcatTab(ToolTab):
-    def __init__(self, app, name):
+    def __init__(self, app, name, controller):
+        self.controller = controller
         super().__init__(
             app,
             name,
@@ -198,18 +199,17 @@ utilize o modo "Testar Porta" para observar
 como serviços reais respondem a conexões.
 """
 )
-        self.netcat = Netcat()
 
         input_style = INPUT_STYLE
 
         # Controles
         self.mode = ft.Dropdown(
             label="Como o Netcat deve agir?",
-            value="Conectar a um Serviço Remoto (Cliente)",
+            value="1",
             options=[
-                ft.dropdown.Option("Conectar a um Serviço Remoto (Cliente)"),
-                ft.dropdown.Option("Ouvir Porta Local (Listener)"),
-                ft.dropdown.Option("Testar Porta e Capturar Banner"),
+                ft.dropdown.Option("1","Ouvir Porta Local (Listener)"),
+                ft.dropdown.Option("2","Conectar a um Serviço Remoto (Cliente)"),
+                ft.dropdown.Option("3","Testar Porta e Capturar Banner"),
             ],
             **input_style
         )
@@ -246,19 +246,23 @@ como serviços reais respondem a conexões.
         self.app.page.update()
 
     async def run(self, e):
+
         await self.clear_terminal()
+
         try:
-            if self.free_cmd_switch.value:
-                import shlex
-                cmd_list = shlex.split(self.raw_cmd.value)
-            else:
-                cmd_list = self.netcat.build_command(
-                    mode=self.mode.value,
-                    host=self.host.value,
-                    port=self.port.value
-                )
-            self.last_command = self.netcat.pretty_command(cmd_list)
-            await self.write_terminal(f"[COMANDO] {self.last_command}\n\n")
-            await self.app.run_docker(self.netcat.docker_service, cmd_list, on_output=self.write_terminal, tab=self)
+
+            self.last_command = await self.controller.execute(
+                mode=self.mode.value,
+                host=self.host.value,
+                port=self.port.value,
+                manual_mode=self.free_cmd_switch.value,
+                raw_command=self.raw_cmd.value,
+                on_output=self.write_terminal,
+                tab=self
+            )
+
         except Exception as err:
-            await self.write_terminal(f"[ERRO] {err}\n")
+
+            await self.write_terminal(
+                f"[ERRO] {err}\n"
+            )

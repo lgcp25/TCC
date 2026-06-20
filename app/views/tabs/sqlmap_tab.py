@@ -4,7 +4,8 @@ from models.sqlmap import Sqlmap
 from config import INPUT_STYLE
 
 class SqlmapTab(ToolTab):
-    def __init__(self, app, name):
+    def __init__(self, app, name, controller):
+        self.controller = controller
         super().__init__(
             app, 
             name, 
@@ -213,48 +214,46 @@ Quanto melhor a enumeração inicial,
 mais eficiente será a análise com SQLMap.
 """
         )
-        self.sqlmap = Sqlmap()
 
         input_style = INPUT_STYLE
 
         self.target = ft.TextField(label="URL Alvo (Deve conter parâmetros, ex: ?id=1)", value="http://dvwa/vulnerabilities/sqli/?id=1&Submit=Submit#", **input_style)
         
         self.level = ft.Dropdown(
-        label="Nível de Teste (--level)",
-        value="1 (Padrão) - Apenas parâmetros GET/POST",
-        options=[
-            ft.dropdown.Option("1 (Padrão) - Apenas parâmetros GET/POST"),
-            ft.dropdown.Option("2 (Moderado) - Inclui teste em Cookies"),
-            ft.dropdown.Option("3 (Avançado) - Inclui User-Agent e Referer"),
-            ft.dropdown.Option("4 (Agressivo) - Payloads extras e mais Headers"),
-            ft.dropdown.Option("5 (Exaustivo) - Testa tudo, incluindo Host - Lento")
-        ],
-        **input_style
-)
+            label="Nível de Teste (--level)",
+            value="1",
+            options=[
+                ft.dropdown.Option("1", "1. Padrão - Apenas parâmetros GET/POST"),
+                ft.dropdown.Option("2", "2. Moderado - Inclui teste em Cookies"),
+                ft.dropdown.Option("3", "3. Avançado - Inclui User-Agent e Referer"),
+                ft.dropdown.Option("4", "4. Agressivo - Payloads extras e mais Headers"),
+                ft.dropdown.Option("5", "5. Exaustivo - Testa tudo, incluindo Host")
+            ],
+            **input_style
+        )
 
-        
         self.risk = ft.Dropdown(
             label="Nível de Risco (--risk)",
-            value="1 (Seguro) - Apenas consultas de leitura padrão",
+            value="1",
             options=[
-                ft.dropdown.Option("1 (Seguro) - Apenas consultas de leitura padrão"),
-                ft.dropdown.Option("2 (Moderado) - Adiciona testes de tempo - Pode causar lentidão"),
-                ft.dropdown.Option("3 (Perigoso) - Testes agressivos - Risco de alterar dados")
+                ft.dropdown.Option("1", "1. Seguro - Apenas consultas de leitura padrão"),
+                ft.dropdown.Option("2", "2. Moderado - Adiciona testes de tempo"),
+                ft.dropdown.Option("3", "3. Perigoso - Testes agressivos")
             ],
             **input_style
         )
 
         self.technique = ft.Dropdown(
             label="Técnica de Injeção Preferida (--technique)",
-            value="Tentar Todas (Padrão - Deixa o sqlmap decidir)",
+            value="A",
             options=[
-                ft.dropdown.Option("Tentar Todas (Padrão - Deixa o sqlmap decidir)"),
-                ft.dropdown.Option("U - UNION: Super Rápida (Dados aparecem direto na tela)"),
-                ft.dropdown.Option("E - Baseada em Erros: Rápida (Aproveita erros exibidos no site)"),
-                ft.dropdown.Option("B - Cega Booleana: Lenta (Para quando o site não mostra erros)"),
-                ft.dropdown.Option("T - Cega por Tempo: Muito Lenta (Usa pausas para adivinhar os dados)"),
-                ft.dropdown.Option("S - Consultas Empilhadas: Avançada (Para rodar comandos no servidor)"),
-                ft.dropdown.Option("Q - Consultas Em Linha: Rara (Para contornar filtros muito restritos)")
+                ft.dropdown.Option("A", "Todas (Padrão - Deixa o SQLMap decidir)"),
+                ft.dropdown.Option("U", "UNION - Super Rápida"),
+                ft.dropdown.Option("E", "Baseada em Erros"),
+                ft.dropdown.Option("B", "Cega Booleana"),
+                ft.dropdown.Option("T", "Cega por Tempo"),
+                ft.dropdown.Option("S", "Consultas Empilhadas"),
+                ft.dropdown.Option("Q", "Consultas Em Linha")
             ],
             **input_style
         )
@@ -276,9 +275,9 @@ mais eficiente será a análise com SQLMap.
 
     def reset_fields(self):
         self.target.value = "http://dvwa/vulnerabilities/sqli/?id=1&Submit=Submit#"
-        self.level.value = "1 (Padrão) - Injeta apenas na URL (Rápido)"
-        self.risk.value = "1 (Seguro) - Sem chance de alterar dados"
-        self.technique.value = "Todas as Técnicas (Recomendado)"
+        self.level.value = "1"
+        self.risk.value = "1"
+        self.technique.value = "A"
         self.db_switch.value = False
         self.table_switch.value = False
         self.pass_switch.value = False
@@ -290,33 +289,29 @@ mais eficiente será a análise com SQLMap.
         self.app.page.update()
 
     async def run(self, e):
-        await self.clear_terminal()
-        try:
-            if self.free_cmd_switch.value:
-                # Usa o model para processar o comando manual e evitar duplicidade do binário
-                cmd_list = self.sqlmap.build_command(target=None, raw_cmd=self.raw_cmd.value)
-            else:
-                # Prepara o cookie do DVWA
-                cookies_str = None
-                if self.app.dvwa_cookies:
-                    cookies_str = "; ".join([f"{k}={v}" for k, v in self.app.dvwa_cookies.items()])
 
-                cmd_list = self.sqlmap.build_command(
-                    target=self.target.value,
-                    level=self.level.value,
-                    risk=self.risk.value,
-                    technique=self.technique.value,
-                    get_dbs=self.db_switch.value,
-                    get_tables=self.table_switch.value,
-                    get_passwords=self.pass_switch.value,
-                    get_shell=self.shell_switch.value,
-                    cookies_str=cookies_str
-                )
-            
-            self.last_command = self.sqlmap.pretty_command(cmd_list)
-            await self.write_terminal(f"[COMANDO] {self.last_command}\n\n")
-            
-            await self.app.run_docker(self.sqlmap.docker_service, cmd_list, on_output=self.write_terminal, tab=self)
+        await self.clear_terminal()
+
+        try:
+
+            self.last_command = await self.controller.execute(
+                target=self.target.value,
+                level=self.level.value,
+                risk=self.risk.value,
+                technique=self.technique.value,
+                get_dbs=self.db_switch.value,
+                get_tables=self.table_switch.value,
+                get_passwords=self.pass_switch.value,
+                get_shell=self.shell_switch.value,
+                manual_mode=self.free_cmd_switch.value,
+                raw_command=self.raw_cmd.value,
+                on_output=self.write_terminal,
+                tab=self
+            )
+
         except Exception as err:
-            await self.write_terminal(f"[ERRO NO APP] {err}\n")
+
+            await self.write_terminal(
+                f"[ERRO] {err}\n"
+            )
 

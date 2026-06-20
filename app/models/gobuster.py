@@ -17,10 +17,11 @@ class Gobuster(BaseTool):
             return [self.binary] + parts
 
         mode_map = {
-            "Buscar Pastas e Arquivos (dir)": "dir",
-            "Descobrir Subdomínios (dns)": "dns",
-            "Descobrir Virtual Hosts (vhost)": "vhost"
+            "1": "dir",
+            "2": "dns",
+            "3": "vhost"
         }
+
         actual_mode = mode_map.get(mode, "dir")
 
         target_flag = "-d" if actual_mode == "dns" else "-u"

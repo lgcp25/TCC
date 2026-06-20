@@ -310,7 +310,7 @@ class AIContext:
             "Crie uma análise técnica formal e OBJETIVA para relatório de pentest.\n"
             "REGRAS:\n"
             "1. DADOS EXTRAÍDOS: Se os logs contêm nomes de bancos de dados, tabelas, colunas, "
-            "usuários ou senhas, liste-os EXPLICITAMENTE em uma seção dedicada.\n"
+            "usuários ou senhas, liste-os EXPLICITAMENTE em uma seção dedicada para cada categoria.\n"
             "2. RESULTADO CONCRETO: Diga exatamente o que a ferramenta conseguiu fazer "
             "(ex: 'O SQLmap confirmou injeção SQL do tipo UNION no parâmetro id e extraiu 5 bancos de dados').\n"
             "3. Estruture em: Resumo (2 linhas), Dados Extraídos (lista), Vulnerabilidade, Impacto e Mitigação.\n"

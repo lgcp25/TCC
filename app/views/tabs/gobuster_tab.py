@@ -1,11 +1,11 @@
 import flet as ft
 from views.tool_tab import ToolTab
 from config import INPUT_STYLE
-from models.gobuster import Gobuster
 
 
 class GobusterTab(ToolTab):
-    def __init__(self, app, name):
+    def __init__(self, app, name, controller):
+        self.controller = controller
         super().__init__(
             app,
             name,
@@ -202,7 +202,6 @@ A enumeração detalhada costuma revelar caminhos
 que os desenvolvedores esqueceram de proteger.
 """
         )
-        self.gobuster = Gobuster()
 
         input_style = INPUT_STYLE
 
@@ -215,12 +214,12 @@ que os desenvolvedores esqueceram de proteger.
 
         self.mode = ft.Dropdown(
             label="O que você quer procurar?",
-            value="Buscar Pastas e Arquivos (dir)",
-            on_select = self.disable_status,
+            value="1",
+            on_select=self.disable_status,
             options=[
-                ft.dropdown.Option("Buscar Pastas e Arquivos (dir)"),
-                ft.dropdown.Option("Descobrir Subdomínios (dns)"),
-                ft.dropdown.Option("Descobrir Virtual Hosts (vhost)")
+                ft.dropdown.Option("1", "1. Buscar Pastas e Arquivos (dir)"),
+                ft.dropdown.Option("2", "2. Descobrir Subdomínios (dns)"),
+                ft.dropdown.Option("3", "3. Descobrir Virtual Hosts (vhost)")
             ],
             **input_style
         )
@@ -290,7 +289,7 @@ que os desenvolvedores esqueceram de proteger.
 
     def reset_fields(self):
         self.target.value = "http://dvwa:80"
-        self.mode.value = "Buscar Pastas e Arquivos (dir)"
+        self.mode.value = "1"
         self.wordlist.value = "/wordlists/common.txt"
         self.threads.value = "10"
         self.extensions.value = ""
@@ -305,7 +304,7 @@ que os desenvolvedores esqueceram de proteger.
         self.app.page.update()
 
     async def disable_status(self,e):
-        if self.mode.value == "Descobrir Virtual Hosts (vhost)":
+        if self.mode.value == "3":
             self.status_codes.disabled = True
             self.status_codes.value = "Não aplicável no modo VHost"
         else:
@@ -313,31 +312,32 @@ que os desenvolvedores esqueceram de proteger.
             self.status_codes.value = "200,300,301,302,307,401,403"
         self.left_col.update()
               
-    
+
+
     async def run(self, e):
+
         await self.clear_terminal()
+
         try:
-            if self.free_cmd_switch.value:
-                import shlex
-                cmd_list = shlex.split(self.raw_cmd.value)
-            else:
-                cookie_str = ""
-                if self.use_cookies.value:
-                    cookie_str = "; ".join([f"{k}={v}" for k, v in getattr(self.app, 'dvwa_cookies', {}).items()])
-                
-                cmd_list = self.gobuster.build_command(
-                    target=self.target.value,
-                    mode=self.mode.value,
-                    wordlist=self.wordlist.value,
-                    threads=self.threads.value,
-                    extensions=self.extensions.value,
-                    status_codes=self.status_codes.value,
-                    follow_redirect=self.follow_redirect.value,
-                    timeout=self.timeout.value,
-                    cookies=cookie_str
-                )
-            self.last_command = self.gobuster.pretty_command(cmd_list)
-            await self.write_terminal(f"[COMANDO] {self.last_command}\n\n")
-            await self.app.run_docker(self.gobuster.docker_service, cmd_list, on_output=self.write_terminal, tab=self)
+
+            self.last_command = await self.controller.execute(
+                target=self.target.value,
+                mode=self.mode.value,
+                wordlist=self.wordlist.value,
+                threads=self.threads.value,
+                extensions=self.extensions.value,
+                status_codes=self.status_codes.value,
+                follow_redirect=self.follow_redirect.value,
+                timeout=self.timeout.value,
+                use_cookies=self.use_cookies.value,
+                manual_mode=self.free_cmd_switch.value,
+                raw_command=self.raw_cmd.value,
+                on_output=self.write_terminal,
+                tab=self
+            )
+
         except Exception as err:
-            await self.write_terminal(f"[ERRO] {err}\n")
+
+            await self.write_terminal(
+                f"[ERRO] {err}\n"
+            )

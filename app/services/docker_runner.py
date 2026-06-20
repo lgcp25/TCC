@@ -86,7 +86,8 @@ def run_docker_turbo(caller_obj, service, cmd_list, on_output, on_finish=None):
 
         finally:
             caller_obj.current_proc = None
-            on_finish()
+            if on_finish:
+                asyncio.run_coroutine_threadsafe(on_finish(), loop)
                     
 
     thread = threading.Thread(target=target)

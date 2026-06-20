@@ -5,7 +5,6 @@ import datetime
 import tempfile
 import subprocess
 from utils import copy_to_clipboard, open_url
-from services.ai_service import ai_service
 from config import THEME_BG, THEME_CARD, THEME_BORDER, THEME_INPUT_BG, THEME_TERMINAL_BG, INPUT_STYLE
 
 class ToolTab:
@@ -94,6 +93,17 @@ class ToolTab:
             ft.ElevatedButton("Documentação Oficial", icon=ft.Icons.DESCRIPTION, on_click=self.open_doc, bgcolor="#1E293B", color="white")
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
 
+        self.btn_cancel = ft.ElevatedButton(
+            "Cancelar",
+            icon=ft.Icons.STOP,
+            on_click=self.cancel,
+            height=50,
+            bgcolor="red900",
+            color="white",
+            expand=True,
+            disabled=True
+        )
+
         # Ações
         self.actions_section = ft.Container(
             content=ft.Column([
@@ -107,7 +117,7 @@ class ToolTab:
                 ft.Row([
                     ft.ElevatedButton("Adicionar ao Relatório", icon=ft.Icons.ADD_CIRCLE_OUTLINE, bgcolor="teal700", color="white", on_click=self.add_to_report, height=50, expand=True),
                     ft.ElevatedButton("Salvar Relatório (.pdf)", icon=ft.Icons.PICTURE_AS_PDF, bgcolor="orange700", color="white", on_click=self.finalize_pdf, height=50, expand=True),
-                    ft.ElevatedButton("Cancelar", icon=ft.Icons.STOP, on_click=self.cancel, height=50, bgcolor="red900", color="white", expand=True)
+                    self.btn_cancel
                 ], spacing=10)
             ], spacing=10),
             padding=15, bgcolor=THEME_CARD, border_radius=10, border=ft.border.all(1, THEME_BORDER)
@@ -165,6 +175,10 @@ class ToolTab:
     def terminal_buffer(self):
         return self.terminal_output.value or ""
 
+    def set_executing(self, executing: bool):
+        self.btn_cancel.disabled = not executing
+        self.btn_cancel.update()
+
     def toggle_free_mode_base(self, e):
 
         is_free = self.free_cmd_switch.value
@@ -205,116 +219,19 @@ class ToolTab:
         self.ai_output.update()
 
     async def explain(self, e):
-        if not self.terminal_buffer.strip(): return self.show_popup("Aviso", "Terminal vazio.")
-        await self.clear_ai()
-        self.app.set_loading("IA analisando resultados...")
-        ans = await ai_service.analyze_results(self.name, self.terminal_buffer, command=self.last_command)
-        await self.write_ai(ans)
-        self.app.set_loading("", False)
+        await self.app.ai_controller.explain(self)
 
     async def explain_cmd(self, e):
-        if not self.last_command: return self.show_popup("Aviso", "Nenhum comando.")
-        await self.clear_ai()
-        self.app.set_loading("IA explicando comando...")
-        ans = await ai_service.explain_command(self.last_command)
-        await self.write_ai(ans)
-        self.app.set_loading("", False)
+        await self.app.ai_controller.explain_cmd(self)
 
     async def show_tips(self, e):
-        if not self.last_command: return self.show_popup("Aviso", "Nenhum comando.")
-        await self.clear_ai()
-        self.app.set_loading("IA buscando dicas...")
-        ans = await ai_service.get_tool_tips(self.name, self.phase, command=self.last_command, logs=self.terminal_buffer)
-        await self.write_ai(ans)
-        self.app.set_loading("", False)
+        await self.app.ai_controller.show_tips(self)
 
     async def add_to_report(self, e):
-        if not self.terminal_buffer.strip(): return self.show_popup("Aviso", "Nada para adicionar.")
-        self.app.set_loading("Formatando descoberta...")
-        analysis = await ai_service.generate_formal_report(self.name, self.terminal_buffer, command=self.last_command)
-        self.app.report_findings.append({"tool": self.name, "analysis": analysis, "command": self.last_command})
-        self.app.set_loading("", False)
-        self.show_popup("Sucesso", "Achado adicionado ao relatório.")
+        await self.app.report_controller.add_to_report(self)
 
     async def finalize_pdf(self, e):
-        if not self.app.report_findings:
-            return self.show_popup("Erro", "Relatório vazio. Use 'Adicionar ao Relatório' primeiro.")
-
-        from services.pdf_service import generate_pentest_pdf
-
-        self.app.set_loading("Gerando Sumário...")
-        summary = await ai_service.generate_executive_summary(self.app.report_findings)
-        self.app.set_loading("Preparando PDF...")
-
-        now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        default_name = f"Relatorio_Vaporeon_{now}.pdf"
-
-        try:
-            temp_path = os.path.join(tempfile.gettempdir(), default_name)
-            generate_pentest_pdf(self.app.report_findings, temp_path, summary_text=summary)
-        except Exception as err:
-            self.app.set_loading("", False)
-            return self.show_popup("Erro no PDF", str(err))
-
-        save_path = None
-        is_fallback = False
-        try:
-            import tkinter as tk
-            from tkinter import filedialog
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes('-topmost', True)
-            save_path = filedialog.asksaveasfilename(
-                title="Salvar Relatório de Pentest",
-                initialfile=default_name,
-                defaultextension=".pdf",
-                filetypes=[("PDF files", "*.pdf"), ("Todos os arquivos", "*.*")]
-            )
-            root.destroy()
-        except Exception as tk_err:
-            print(f"[PDF] Falha ao abrir diálogo salvar (tkinter): {tk_err}")
-            try:
-                downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
-                if not os.path.exists(downloads_dir):
-                    downloads_dir = os.path.expanduser("~")
-                save_path = os.path.join(downloads_dir, default_name)
-                is_fallback = True
-            except Exception as fallback_err:
-                print(f"[PDF] Falha ao definir caminho fallback: {fallback_err}")
-                save_path = None
-
-        if not save_path:
-            try:
-                os.remove(temp_path)
-            except:
-                pass
-            self.app.set_loading("", False)
-            self.show_popup("Cancelado", "Exportação do PDF cancelada pelo usuário.")
-            return
-
-        if not save_path.endswith(".pdf"):
-            save_path += ".pdf"
-
-        try:
-            shutil.copy2(temp_path, save_path)
-            try:
-                os.remove(temp_path)
-            except:
-                pass
-        except Exception as err:
-            self.app.set_loading("", False)
-            return self.show_popup("Erro ao salvar", str(err))
-
-        self.app.report_findings = []
-        self.app.set_loading("", False)
-        
-        if is_fallback:
-            self.show_popup(
-                "Relatório Gerado (Fallback)", 
-                f"Não foi possível abrir a janela para escolher a pasta. O relatório foi salvo automaticamente em:\n{save_path}"
-            )
-        else:
-            self.show_popup("Relatório Gerado", f"Salvo em: {save_path}")
+        await self.app.report_controller.finalize_pdf(self)
 
     def show_popup(self, title, message):
 
@@ -358,6 +275,9 @@ class ToolTab:
         import time
         import re
         
+        if "[Finalizado]" in text:
+            force_update = True
+            
         if "Container docker-pentester" in text:
             text = re.sub(r"Container docker-pentester-run-[a-z0-9]+ (Creating|Created)[ \r\n]*", "", text)
 
@@ -368,7 +288,7 @@ class ToolTab:
         self.terminal_output.value += text
         
         current_time = time.time()
-        if force_update or not hasattr(self, "_last_terminal_update") or (current_time - self._last_terminal_update) > 0.1:
+        if force_update or not hasattr(self, "_last_terminal_update") or (current_time - self._last_terminal_update) > 0.5:
             self.terminal_output.update()
             self._last_terminal_update = current_time
 
@@ -381,7 +301,7 @@ class ToolTab:
         self.terminal_output.update()
 
     async def cancel(self, e):
-        self.app.cancel_process(on_output=self.write_terminal, tab=self)
+        self.app.cancel(on_output=self.write_terminal, tab=self)
         
     def show_snack(self, m, c):
         sn = ft.SnackBar(
